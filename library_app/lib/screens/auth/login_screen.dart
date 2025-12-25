@@ -3,6 +3,7 @@ import '../../../api/api_service.dart';
 import 'signup_screen.dart';
 import '../admin/dashboard_screen.dart';
 import '../student/dashboard_screen.dart';
+import '../../utils/js_safe.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,33 +23,57 @@ class _LoginScreenState extends State<LoginScreen> {
   void login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => loading = true);
+    if (mounted) setState(() => loading = true);
 
-    final response = await api.login(
-      email: emailController.text,
-      password: passwordController.text,
-    );
+    try {
+      final response = await api.login(
+        email: emailController.text,
+        password: passwordController.text,
+      );
 
-    setState(() => loading = false);
+      if (!mounted) return; // Prevent further UI updates if disposed
 
-    if (response['success'] == true) {
-      final role = response['user']['role'];
-      if (role == 'admin') {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-        );
+      setState(() => loading = false);
+
+      if (response['success'] == true) {
+        final role = response['user']['role'];
+        if (role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const StudentDashboardScreen()),
+          );
+        }
       } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentDashboardScreen()),
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              safeString(response['message']).isEmpty
+                  ? 'Login failed'
+                  : safeString(response['message']),
+            ),
+          ),
         );
       }
-    } else {
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Login failed')),
+        const SnackBar(content: Text('Login failed. Please try again.')),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,8 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 32),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -161,6 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Signup
                       TextButton(
                         onPressed: () {
+                          if (!mounted) return;
                           Navigator.push(
                             context,
                             MaterialPageRoute(

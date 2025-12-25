@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../utils/js_safe.dart';
 import 'dashboard_screen.dart';
 import 'book_screen.dart';
 import 'request_screen.dart';
@@ -25,44 +26,55 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     fetchStudents();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchStudents([String? search]) async {
     try {
-      setState(() => loading = true);
+      if (mounted) setState(() => loading = true);
       final data = await api.getAllStudents(search: search);
+      if (!mounted) return;
+
       if (data['success'] == true && data['students'] != null) {
-        setState(() {
-          students = List<Map<String, dynamic>>.from(data['students']);
-        });
+        if (mounted) {
+          setState(() {
+            students = sanitizeListOfMaps(List.from(data['students'] ?? []));
+          });
+        }
       }
     } catch (e) {
       debugPrint('Fetch students error: $e');
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
   void navigateTo(String route) async {
-    final storage = const FlutterSecureStorage();
+    const storage = FlutterSecureStorage();
     await storage.write(key: 'last_route', value: route);
+    if (!mounted) return;
+
     switch (route) {
       case '/admin/books':
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const AdminBooksScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminBooksScreen()));
         break;
       case '/admin/dashboard':
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
         break;
       case '/admin/loans':
         Navigator.pushReplacementNamed(context, '/admin/loans');
         break;
       case '/admin/requests':
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const AdminRequestsScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminRequestsScreen()));
+        break;
+      case '/admin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
       case '/auth/logout':
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
         break;
     }
   }
@@ -86,13 +98,19 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             onSelected: (String value) {
               if (value.isNotEmpty) navigateTo(value);
             },
-            itemBuilder: (BuildContext context) => const [
+            itemBuilder: (_) => const [
               PopupMenuItem(value: '/admin/books', child: Text('Books')),
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () => fetchStudents(),
           ),
         ],
       ),
@@ -123,6 +141,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                 ),
                                 contentPadding: EdgeInsets.symmetric(horizontal: 12),
                               ),
+                              onSubmitted: (_) => fetchStudents(searchController.text),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -150,8 +169,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                 )
                               : Column(
                                   children: students.map((student) {
-                                    final createdAt = DateTime.tryParse(
-                                        student['created_at'] ?? '');
+                                    final createdAt = safeParseDate(student['created_at']);
                                     return Card(
                                       margin: const EdgeInsets.symmetric(vertical: 6),
                                       shape: RoundedRectangleBorder(
@@ -178,7 +196,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    'Email: ${student['email'] ?? 'N/A'}',
+                                                    'Email: ${safeString(student['email']).isEmpty ? 'N/A' : safeString(student['email'])}',
                                                     style: const TextStyle(
                                                       fontSize: 14,
                                                       color: Colors.black87,
@@ -186,7 +204,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                                   ),
                                                 ),
                                                 Text(
-                                                  'ID: ${student['student_id'] ?? 'N/A'}',
+                                                  'ID: ${safeString(student['student_id']).isEmpty ? 'N/A' : safeString(student['student_id'])}',
                                                   style: const TextStyle(
                                                     fontSize: 14,
                                                     color: Colors.black87,
@@ -201,7 +219,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                               children: [
                                                 Expanded(
                                                   child: Text(
-                                                    'Mobile: ${student['mobile_no'] ?? 'N/A'}',
+                                                    'Mobile: ${safeString(student['mobile_no']).isEmpty ? 'N/A' : safeString(student['mobile_no'])}',
                                                     style: const TextStyle(
                                                       fontSize: 14,
                                                       color: Colors.black87,

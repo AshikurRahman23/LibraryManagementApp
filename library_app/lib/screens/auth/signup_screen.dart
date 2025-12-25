@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../api/api_service.dart';
 import 'login_screen.dart';
+import '../../utils/js_safe.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -23,32 +24,67 @@ class _SignupScreenState extends State<SignupScreen> {
   void signup() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => loading = true);
+    // Update UI if still mounted
+    if (mounted) setState(() => loading = true);
 
-    final response = await api.signup(
-      name: nameController.text,
-      email: emailController.text,
-      password: passwordController.text,
-      studentId: studentIdController.text,
-      mobileNo: mobileController.text,
-      role: 'student',
-    );
-
-    setState(() => loading = false);
-
-    if (response['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Signup successful')),
+    try {
+      final response = await api.signup(
+        name: nameController.text,
+        email: emailController.text,
+        password: passwordController.text,
+        studentId: studentIdController.text,
+        mobileNo: mobileController.text,
+        role: 'student',
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    } else {
+
+      // Stop if widget disposed while waiting
+      if (!mounted) return;
+      setState(() => loading = false);
+
+      if (response['success'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              safeString(response['message']).isEmpty
+                  ? 'Signup successful'
+                  : safeString(response['message']),
+            ),
+          ),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              safeString(response['message']).isEmpty
+                  ? 'Signup failed'
+                  : safeString(response['message']),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? 'Signup failed')),
+        const SnackBar(content: Text('Signup failed. Please try again.')),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    studentIdController.dispose();
+    mobileController.dispose();
+    super.dispose();
   }
 
   @override
@@ -69,7 +105,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 32),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -168,8 +205,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please enter mobile number' : null,
+                        validator: (value) => value!.isEmpty
+                            ? 'Please enter mobile number'
+                            : null,
                         onFieldSubmitted: (_) => signup(),
                       ),
                       const SizedBox(height: 32),
@@ -207,6 +245,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
                       TextButton(
                         onPressed: () {
+                          if (!mounted) return;
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(

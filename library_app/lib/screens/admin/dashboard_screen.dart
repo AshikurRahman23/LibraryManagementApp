@@ -5,6 +5,7 @@ import 'book_screen.dart';
 import 'request_screen.dart';
 import 'student_screen.dart';
 import '../../screens/auth/login_screen.dart';
+import '../../utils/js_safe.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -34,17 +35,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> fetchStats() async {
     try {
-      setState(() => loading = true);
+      if (mounted) setState(() => loading = true);
+
       final data = await api.getAdminDashboard();
+
+      if (!mounted) return;
+
       if (data['success'] == true && data['stats'] != null) {
-        setState(() {
-          stats = data['stats'];
-        });
+        if (mounted) {
+          setState(() {
+            stats = sanitizeMap(Map.from(data['stats']));
+          });
+        }
       }
     } catch (e) {
       debugPrint('Fetch stats error: $e');
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -89,6 +96,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     const storage = FlutterSecureStorage();
     await storage.write(key: 'last_route', value: route);
 
+    if (!mounted) return;
+
     switch (route) {
       case '/admin/books':
         Navigator.pushReplacement(
@@ -104,6 +113,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case '/admin/requests':
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => AdminRequestsScreen()));
+        break;
+      case '/admin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -136,6 +148,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
@@ -172,18 +185,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               childAspectRatio: 1.6,
                               children: [
                                 buildStatCard(Icons.menu_book, 'Total Books',
-                                    stats['totalBooks'].toString(),
+                                    safeString(stats['totalBooks']),
                                     'Books in library'),
                                 buildStatCard(Icons.library_books, 'Total Copies',
-                                    stats['totalCopies'].toString(), 'All copies'),
+                                    safeString(stats['totalCopies']), 'All copies'),
                                 buildStatCard(Icons.people, 'Total Students',
-                                    stats['totalStudents'].toString(), 'Registered users'),
+                                    safeString(stats['totalStudents']), 'Registered users'),
                                 buildStatCard(Icons.bookmark, 'Books Loaned',
-                                    stats['booksLoaned'].toString(), 'Currently borrowed'),
+                                    safeString(stats['booksLoaned']), 'Currently borrowed'),
                                 buildStatCard(Icons.check_circle, 'Books Returned',
-                                    stats['booksReturned'].toString(), 'Successfully returned'),
+                                    safeString(stats['booksReturned']), 'Successfully returned'),
                                 buildStatCard(Icons.warning_amber, 'Overdue Books',
-                                    stats['overdueBooks'].toString(), 'Late returns'),
+                                    safeString(stats['overdueBooks']), 'Late returns'),
                               ],
                             ),
                             const SizedBox(height: 24),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../utils/js_safe.dart';
 import 'allbooks_screen.dart';
 import 'dashboard_screen.dart';
 import '../auth/login_screen.dart';
@@ -43,8 +44,8 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
       final data = await apiService.getMyBooks(search: search);
       if (!mounted) return;
       setState(() {
-        currentLoans = List<Map<String, dynamic>>.from(data['currentLoans'] ?? []);
-        pastLoans = List<Map<String, dynamic>>.from(data['pastLoans'] ?? []);
+        currentLoans = sanitizeListOfMaps(List.from(data['currentLoans'] ?? []));
+        pastLoans = sanitizeListOfMaps(List.from(data['pastLoans'] ?? []));
         borrowed = data['borrowed'] ?? 0;
         isLoading = false;
       });
@@ -54,37 +55,50 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     }
   }
 
-  int calculateDaysLeft(String returnDate) {
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  int calculateDaysLeft(Object? returnDate) {
     final today = DateTime.now();
-    final due = DateTime.parse(returnDate);
+    final due = safeParseDate(returnDate);
+    if (due == null) return 0; // unable to parse -> treat as 0 days left
     return due.difference(today).inDays;
   }
 
   Future<void> navigateTo(String route) async {
+    if (!mounted) return;
     await storage.write(key: 'last_route', value: route);
     if (!mounted) return;
 
     switch (route) {
       case '/student/books':
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const StudentAllBooksScreen()),
         );
         break;
       case '/student/mybooks':
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => StudentMyBooksScreen()),
         );
         break;
       case '/student/dashboard':
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const StudentDashboardScreen()),
         );
         break;
       case '/auth/logout':
+        if (!mounted) return;
         await apiService.logout();
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -108,11 +122,15 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
           IconButton(
             icon: const Icon(Icons.home),
             tooltip: 'Dashboard',
-            onPressed: () => navigateTo('/student/dashboard'),
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/student/dashboard');
+            },
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (value) {
+              if (!mounted) return;
               if (value.isNotEmpty) navigateTo(value);
             },
             itemBuilder: (context) => const [
@@ -121,12 +139,20 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              if (!mounted) return;
+              fetchMyBooks();
+            },
+          ),
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Center(
-            child: SingleChildScrollView(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: maxWidth),
@@ -134,7 +160,6 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-            
                       // Search Bar
                       Row(
                         children: [
@@ -147,19 +172,23 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              onSubmitted: (_) => fetchMyBooks(search: searchController.text),
+                              onSubmitted: (_) {
+                                if (!mounted) return;
+                                fetchMyBooks(search: searchController.text);
+                              },
                             ),
                           ),
                           const SizedBox(width: 8),
                           ElevatedButton(
-                            onPressed: () =>
-                                fetchMyBooks(search: searchController.text),
+                            onPressed: () {
+                              if (!mounted) return;
+                              fetchMyBooks(search: searchController.text);
+                            },
                             child: const Text('🔍 Search'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-            
                       // Currently Borrowed Books
                       Row(
                         children: [
@@ -180,58 +209,67 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                           ? const Text('No books currently borrowed.')
                           : Column(
                               children: currentLoans.map((loan) {
-                                final daysLeft =
-                                    calculateDaysLeft(loan['return_date']);
+                                final daysLeft = calculateDaysLeft(loan['return_date']);
                                 return Card(
                                   elevation: 3,
                                   margin: const EdgeInsets.symmetric(vertical: 8),
                                   child: ListTile(
                                     title: Text(
-                                      loan['title'] ?? '',
+                                      safeString(loan['title']),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                           color: Colors.black87),
                                     ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                        ),
-                                        Text(
-                                          'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        daysLeft < 0
-                                            ? const Text('Overdue',
-                                                style: TextStyle(
-                                                    color: Colors.red,
-                                                    fontWeight: FontWeight.bold))
-                                            : Text('$daysLeft days left',
-                                                style: const TextStyle(
-                                                    color: Colors.green,
-                                                    fontWeight: FontWeight.w600)),
-                                      ],
-                                    ),
+                                    subtitle: Builder(builder: (_) {
+                                      final issued = safeParseDate(loan['issued_at']);
+                                      final ret = safeParseDate(loan['return_date']);
+                                      final issuedText = issued != null
+                                          ? issued.toLocal().toShortDateString()
+                                          : safeString(loan['issued_at']);
+                                      final returnText = ret != null
+                                          ? ret.toLocal().toShortDateString()
+                                          : safeString(loan['return_date']);
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Issued: $issuedText',
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                          Text(
+                                            'Return: $returnText',
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          daysLeft < 0
+                                              ? const Text('Overdue',
+                                                  style: TextStyle(
+                                                      color: Colors.red,
+                                                      fontWeight: FontWeight.bold))
+                                              : Text('$daysLeft days left',
+                                                  style: const TextStyle(
+                                                      color: Colors.green,
+                                                      fontWeight: FontWeight.w600)),
+                                        ],
+                                      );
+                                    }),
                                     trailing: loan['status'] == 'overdue'
                                         ? const Text('Overdue',
                                             style: TextStyle(
                                                 color: Colors.red,
                                                 fontWeight: FontWeight.bold))
                                         : Text(
-                                            loan['status'] ?? '',
+                                            safeString(loan['status']),
                                             style: const TextStyle(fontWeight: FontWeight.w500),
                                           ),
                                   ),
                                 );
                               }).toList(),
                             ),
-            
                       const SizedBox(height: 30),
-            
                       // Returned Books
                       const Text('Returned Books',
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
@@ -246,29 +284,46 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                   child: ListTile(
                                     leading: const Icon(Icons.check_circle, color: Colors.green),
                                     title: Text(
-                                      loan['title'] ?? '',
+                                      safeString(loan['title']),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 16,
                                           color: Colors.black87),
                                     ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                        ),
-                                        Text(
-                                          'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                        ),
-                                        Text(
-                                          'Returned: ${DateTime.parse(loan['returned_at']).toLocal().toShortDateString()}',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                        ),
-                                      ],
-                                    ),
+                                    subtitle: Builder(builder: (_) {
+                                      final issued = safeParseDate(loan['issued_at']);
+                                      final ret = safeParseDate(loan['return_date']);
+                                      final returned = safeParseDate(loan['returned_at']);
+                                      final issuedText = issued != null
+                                          ? issued.toLocal().toShortDateString()
+                                          : safeString(loan['issued_at']);
+                                      final returnText = ret != null
+                                          ? ret.toLocal().toShortDateString()
+                                          : safeString(loan['return_date']);
+                                      final returnedText = returned != null
+                                          ? returned.toLocal().toShortDateString()
+                                          : safeString(loan['returned_at']);
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Issued: $issuedText',
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                          Text(
+                                            'Return: $returnText',
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                          Text(
+                                            'Returned: $returnedText',
+                                            style: const TextStyle(
+                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          ),
+                                        ],
+                                      );
+                                    }),
                                     trailing: Text(
                                       loan['status'] ?? '',
                                       style: const TextStyle(fontWeight: FontWeight.w500),
@@ -277,13 +332,12 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                 );
                               }).toList(),
                             ),
-            
                       const SizedBox(height: 30),
                     ],
                   ),
                 ),
               ),
-          ),
+            ),
     );
   }
 }

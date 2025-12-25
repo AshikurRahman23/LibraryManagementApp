@@ -4,6 +4,7 @@ import '../../api/api_service.dart';
 import 'allbooks_screen.dart';
 import 'mybooks_screen.dart';
 import '../auth/login_screen.dart';
+import '../../utils/js_safe.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -28,6 +29,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     fetchDashboardData();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchDashboardData() async {
     try {
       final data = await apiService.getStudentDashboard();
@@ -50,24 +57,29 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   Future<void> navigateTo(String route) async {
+    if (!mounted) return;
     await storage.write(key: 'last_route', value: route);
     if (!mounted) return;
 
     switch (route) {
       case '/student/books':
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const StudentAllBooksScreen()),
         );
         break;
       case '/student/mybooks':
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => StudentMyBooksScreen()),
         );
         break;
       case '/auth/logout':
+        if (!mounted) return;
         await apiService.logout();
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -77,6 +89,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   }
 
   void searchBooks() {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -102,11 +115,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.home),
             tooltip: 'Dashboard',
-            onPressed: () => navigateTo('/student/dashboard'),
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/student/dashboard');
+            },
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
+              if (!mounted) return;
               if (value.isNotEmpty) navigateTo(value);
             },
             itemBuilder: (BuildContext context) => const [
@@ -132,68 +149,66 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     children: [
                       const SizedBox(height: 24),
 
-                     // Welcome Card - Standard Clean UI
-Card(
-  elevation: 3,
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  child: Padding(
-    padding: const EdgeInsets.all(20),
-    child: Row(
-      children: [
-        const Icon(
-          Icons.person,
-          size: 50,
-          color: Colors.blueAccent,
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Hello, $studentName!',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Student ID: $studentId',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade800,
-                ),
-              ),
-              const SizedBox(height: 4),
-            ],
-          ),
-        ),
-      ],
-    ),
-  ),
-),
-
+                      // Welcome Card - Standard Clean UI
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.blueAccent,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Hello, $studentName!',
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Student ID: $studentId',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
 
                       const SizedBox(height: 24),
 
-                     // Improved Intro Text
-Text(
-  'Welcome to the Online Library Management System.\n'
-  'Discover a wide range of books and effortlessly manage your reading journey.',
-  style: TextStyle(
-    fontSize: 16,
-    height: 1.6, // slightly more spacing for readability
-    color: Colors.grey.shade800, // softer than black
-    fontWeight: FontWeight.w500, // medium weight for a modern look
-  ),
-  textAlign: TextAlign.start, // ensures alignment looks neat
-),
-
+                      // Intro Text
+                      Text(
+                        'Welcome to the Online Library Management System.\n'
+                        'Discover a wide range of books and effortlessly manage your reading journey.',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.start,
+                      ),
 
                       const SizedBox(height: 24),
 
@@ -271,13 +286,13 @@ Text(
                                         color: Colors.blueAccent,
                                       ),
                                       title: Text(
-                                        book['title'] ?? '',
+                                        safeString(book['title']),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       subtitle: Text(
-                                        '– ${book['author'] ?? '-'}',
+                                        '– ${safeString(book['author']).isEmpty ? '-' : safeString(book['author'])}',
                                         style: const TextStyle(
                                           color: Colors.black87,
                                         ),

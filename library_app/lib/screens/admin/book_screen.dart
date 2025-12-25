@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import 'dashboard_screen.dart';
-import 'request_screen.dart';
 import 'student_screen.dart';
+import 'request_screen.dart';
 import '../../screens/auth/login_screen.dart';
+import '../../utils/js_safe.dart';
 
 class AdminBooksScreen extends StatefulWidget {
   const AdminBooksScreen({super.key});
@@ -39,11 +40,13 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
 
   Future<void> fetchBooks([String? search]) async {
     try {
-      setState(() => loading = true);
+      if (mounted) setState(() => loading = true);
       final data = await api.getAllBooks();
+      if (!mounted) return;
+
       if (data['success'] == true) {
         List<Map<String, dynamic>> allBooks =
-            List<Map<String, dynamic>>.from(data['books']);
+            sanitizeListOfMaps(List.from(data['books'] ?? []));
 
         if (search != null && search.isNotEmpty) {
           final q = search.toLowerCase();
@@ -54,12 +57,12 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
           }).toList();
         }
 
-        setState(() => books = allBooks);
+        if (mounted) setState(() => books = allBooks);
       }
     } catch (e) {
       debugPrint('Fetch books error: $e');
     } finally {
-      setState(() => loading = false);
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -76,12 +79,15 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
       genre: addGenreController.text,
     );
 
+    if (!mounted) return;
+
     if (data['success'] == true) {
       fetchBooks();
       addTitleController.clear();
       addAuthorController.clear();
       addTotalController.clear();
       addGenreController.clear();
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Book added successfully')));
     }
@@ -98,8 +104,11 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
       genre: editGenreController.text,
     );
 
+    if (!mounted) return;
+
     if (data['success'] == true) {
       fetchBooks();
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Book updated successfully')));
@@ -108,8 +117,11 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
 
   Future<void> deleteBook(int id) async {
     final data = await api.deleteBook(id: id);
+    if (!mounted) return;
+
     if (data['success'] == true) {
       fetchBooks();
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Book deleted successfully')));
     }
@@ -117,10 +129,12 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
 
   void openEditModal(Map<String, dynamic> book) {
     editingBookId = book['id'];
-    editTitleController.text = book['title'];
-    editAuthorController.text = book['author'];
-    editTotalController.text = book['total_copies'].toString();
-    editGenreController.text = book['genre'];
+    editTitleController.text = safeString(book['title']);
+    editAuthorController.text = safeString(book['author']);
+    editTotalController.text = safeString(book['total_copies']).isEmpty
+        ? ''
+        : safeString(book['total_copies']);
+    editGenreController.text = safeString(book['genre']);
 
     showDialog(
       context: context,
@@ -145,9 +159,7 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(onPressed: updateBook, child: const Text('Update')),
         ],
       ),
@@ -157,25 +169,26 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
   void navigateTo(String route) async {
     const storage = FlutterSecureStorage();
     await storage.write(key: 'last_route', value: route);
+    if (!mounted) return;
 
     switch (route) {
       case '/admin/dashboard':
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => AdminDashboardScreen()));
+            context, MaterialPageRoute(builder: (_) => AdminDashboardScreen()));
         break;
       case '/admin/students':
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => AdminStudentsScreen()));
+            context, MaterialPageRoute(builder: (_) => AdminStudentsScreen()));
         break;
       case '/admin/loans':
         Navigator.pushReplacementNamed(context, '/admin/loans');
         break;
       case '/admin/requests':
         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => AdminRequestsScreen()));
+            context, MaterialPageRoute(builder: (_) => AdminRequestsScreen()));
+        break;
+      case '/admin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -205,9 +218,15 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
-          )
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () => fetchBooks(),
+          ),
         ],
       ),
       body: Center(
@@ -226,24 +245,19 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                         children: [
                           TextField(
                               controller: addTitleController,
-                              decoration:
-                                  const InputDecoration(labelText: 'Title')),
+                              decoration: const InputDecoration(labelText: 'Title')),
                           TextField(
                               controller: addAuthorController,
-                              decoration:
-                                  const InputDecoration(labelText: 'Author')),
+                              decoration: const InputDecoration(labelText: 'Author')),
                           TextField(
                               controller: addTotalController,
                               keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                  labelText: 'Total Copies')),
+                              decoration: const InputDecoration(labelText: 'Total Copies')),
                           TextField(
                               controller: addGenreController,
-                              decoration:
-                                  const InputDecoration(labelText: 'Genre')),
+                              decoration: const InputDecoration(labelText: 'Genre')),
                           const SizedBox(height: 8),
-                          ElevatedButton(
-                              onPressed: addBook, child: const Text('Add Book'))
+                          ElevatedButton(onPressed: addBook, child: const Text('Add Book'))
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -254,14 +268,12 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                             child: TextField(
                               controller: searchController,
                               decoration: const InputDecoration(
-                                  hintText:
-                                      'Search by title, author, or genre'),
+                                  hintText: 'Search by title, author, or genre'),
                             ),
                           ),
                           IconButton(
                               icon: const Icon(Icons.search),
-                              onPressed: () =>
-                                  fetchBooks(searchController.text)),
+                              onPressed: () => fetchBooks(searchController.text)),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -271,50 +283,31 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                           : ListView.builder(
                               itemCount: books.length,
                               shrinkWrap: true,
-                              physics:
-                                  const NeverScrollableScrollPhysics(),
+                              physics: const NeverScrollableScrollPhysics(),
                               itemBuilder: (_, index) {
                                 final book = books[index];
                                 return Card(
                                   elevation: 2,
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 6),
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
                                   shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(10)),
+                                      borderRadius: BorderRadius.circular(10)),
                                   child: ListTile(
-                                    contentPadding:
-                                        const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 6),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                                     title: Text(
                                       book['title'],
-                                      style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600),
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
                                     subtitle: Text.rich(
                                       TextSpan(
                                         children: [
                                           TextSpan(
                                             text: book['author'],
-                                            style: const TextStyle(
-                                              color: Colors.black,
-                                              fontSize: 13,
-                                            ),
+                                            style: const TextStyle(color: Colors.black, fontSize: 13),
                                           ),
-                                          const TextSpan(
-                                            text: ' • ',
-                                            style: TextStyle(
-                                              color: Colors.black54,
-                                              fontSize: 13,
-                                            ),
-                                          ),
+                                          const TextSpan(text: ' • ', style: TextStyle(color: Colors.black54, fontSize: 13)),
                                           TextSpan(
                                             text: book['genre'],
-                                            style: const TextStyle(
-                                              color: Colors.black54,
-                                              fontSize: 13,
-                                            ),
+                                            style: const TextStyle(color: Colors.black54, fontSize: 13),
                                           ),
                                         ],
                                       ),
@@ -323,15 +316,11 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                                       spacing: 4,
                                       children: [
                                         IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                color: Colors.blueGrey),
-                                            onPressed: () =>
-                                                openEditModal(book)),
+                                            icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                                            onPressed: () => openEditModal(book)),
                                         IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.redAccent),
-                                            onPressed: () =>
-                                                deleteBook(book['id'])),
+                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                            onPressed: () => deleteBook(book['id'])),
                                       ],
                                     ),
                                   ),

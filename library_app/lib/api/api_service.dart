@@ -105,6 +105,50 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  // Fetch suggested books for admin
+  Future<Map<String, dynamic>> getSuggestedBooks() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/suggested-books'),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Delete a suggested book by id (admin only)
+  // Robust to endpoints that may return empty or non-JSON bodies (avoids FormatException)
+  Future<Map<String, dynamic>> deleteSuggestedBook({required int id}) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/admin/suggested-books/$id'),
+      headers: await _getHeaders(withAuth: true),
+    );
+
+    // Successful HTTP status
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      // If body is empty or not JSON, return a generic success map
+      if (response.body == null || response.body.trim().isEmpty) {
+        return {'success': true, 'message': 'Deleted'};
+      }
+      try {
+        return jsonDecode(response.body);
+      } catch (e) {
+        // Non-JSON but successful response
+        return {'success': true, 'message': 'Deleted', 'raw': response.body};
+      }
+    }
+
+    // Non-success status: try to parse JSON error, otherwise return a structured error
+    try {
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Server error',
+        'statusCode': response.statusCode,
+        'body': response.body
+      };
+    }
+  }
+
   Future<Map<String, dynamic>> addBook({
     required String title,
     required String author,

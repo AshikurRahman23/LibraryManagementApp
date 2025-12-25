@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../utils/js_safe.dart';
 import 'mybooks_screen.dart';
 import 'dashboard_screen.dart';
 import '../auth/login_screen.dart';
@@ -29,6 +30,12 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
     fetchBooks(search: widget.searchQuery);
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> fetchBooks({String search = ''}) async {
     if (!mounted) return;
     setState(() => isLoading = true);
@@ -38,7 +45,7 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
       if (!mounted) return;
 
       setState(() {
-        books = List<Map<String, dynamic>>.from(data['books'] ?? []);
+        books = sanitizeListOfMaps(List.from(data['books'] ?? []));
         borrowed = data['borrowed'] ?? 0;
         isLoading = false;
       });
@@ -52,6 +59,8 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
   }
 
   Future<void> borrowBook(int bookId) async {
+    if (!mounted) return;
+
     if (borrowed >= 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -66,13 +75,19 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
       if (!mounted) return;
 
       if (data['success'] == true) {
-        fetchBooks(search: searchController.text);
+        await fetchBooks(search: searchController.text);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Borrow request sent ✅')),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['message'] ?? 'Failed to borrow book')),
+          SnackBar(
+            content: Text(safeString(data['message']).isEmpty
+                ? 'Failed to borrow book'
+                : safeString(data['message'])),
+          ),
         );
       }
     } catch (e) {
@@ -84,9 +99,10 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
   }
 
   Future<void> navigateTo(String route) async {
-    await storage.write(key: 'last_route', value: route);
     if (!mounted) return;
+    await storage.write(key: 'last_route', value: route);
 
+    if (!mounted) return;
     switch (route) {
       case '/student/dashboard':
         Navigator.pushReplacement(
@@ -98,7 +114,8 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => StudentAllBooksScreen(searchQuery: searchController.text),
+            builder: (_) =>
+                StudentAllBooksScreen(searchQuery: searchController.text),
           ),
         );
         break;
@@ -132,7 +149,8 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue.shade700,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Borrow',
@@ -171,9 +189,15 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
             },
             itemBuilder: (BuildContext context) => const [
               PopupMenuItem(value: '/student/books', child: Text('All Books')),
-              PopupMenuItem(value: '/student/mybooks', child: Text('My Books')),
+              PopupMenuItem(
+                  value: '/student/mybooks', child: Text('My Books')),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () => fetchBooks(),
           ),
         ],
       ),
@@ -203,7 +227,8 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => fetchBooks(search: searchController.text),
+                      onPressed: () =>
+                          fetchBooks(search: searchController.text),
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -233,44 +258,55 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                               final book = books[index];
                               return Card(
                                 elevation: 3,
-                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                margin:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(12),
                                   title: Text(
-                                    book['title'] ?? '',
+                                    safeString(book['title']),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 18,
                                       color: Colors.black87,
                                     ),
                                   ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '✍️ Author: ${book['author'] ?? '-'}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                  subtitle: Builder(builder: (_) {
+                                    final author = safeString(book['author']);
+                                    final genre = safeString(book['genre']);
+                                    final available = safeString(
+                                            book['available_copies'])
+                                        .isEmpty
+                                        ? '0'
+                                        : safeString(book['available_copies']);
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '✍️ Author: ${author.isEmpty ? '-' : author}',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '🏷️ Genre: ${book['genre'] ?? '-'}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                        Text(
+                                          '🏷️ Genre: ${genre.isEmpty ? '-' : genre}',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '📦 Available: ${book['available_copies'] ?? 0}',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blueGrey,
+                                        Text(
+                                          '📦 Available: $available',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.blueGrey,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    );
+                                  }),
                                   trailing: buildActionButton(book),
                                 ),
                               );

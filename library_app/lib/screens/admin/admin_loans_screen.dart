@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../utils/js_safe.dart';
 import '../../screens/auth/login_screen.dart';
 
 class AdminLoansScreen extends StatefulWidget {
@@ -25,12 +26,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
   Future<void> fetchLoans([String? search]) async {
     try {
-      setState(() => loading = true);
+      if (mounted) setState(() => loading = true);
       final data = await api.getAllLoans();
+
+      if (!mounted) return;
 
       if (data['success'] == true) {
         List<Map<String, dynamic>> allLoans =
-            List<Map<String, dynamic>>.from(data['loans']);
+            sanitizeListOfMaps(List.from(data['loans'] ?? []));
 
         if (search != null && search.isNotEmpty) {
           final q = search.toLowerCase();
@@ -40,7 +43,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
           }).toList();
         }
 
-        setState(() => loans = allLoans);
+        if (mounted) setState(() => loans = allLoans);
       }
     } catch (e) {
       debugPrint('Fetch loans error: $e');
@@ -56,12 +59,18 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
     if (data['success'] == true) {
       fetchLoans();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Book marked as returned')),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(data['message'] ?? 'Operation failed')),
+        SnackBar(
+          content: Text(safeString(data['message']).isEmpty
+              ? 'Operation failed'
+              : safeString(data['message'])),
+        ),
       );
     }
   }
@@ -87,6 +96,10 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
       case '/admin/requests':
         Navigator.pushReplacementNamed(context, '/admin/requests');
+        break;
+
+      case '/admin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
 
       case '/auth/logout':
@@ -120,8 +133,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () => fetchLoans(),
           ),
         ],
       ),
@@ -170,26 +189,24 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 6),
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: ListTile(
                                     title: Text(
-                                      loan['title'],
+                                      safeString(loan['title']),
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Borrowed by: ${loan['student_name']} (ID: ${loan['student_id']})',
+                                          'Borrowed by: ${safeString(loan['student_name'])} (ID: ${safeString(loan['student_id'])})',
                                         ),
                                         Text(
-                                          'Status: ${loan['status'].toString().toUpperCase()}',
+                                          'Status: ${safeString(loan['status']).toUpperCase()}',
                                           style: TextStyle(
                                             color: isIssued
                                                 ? Colors.orange
