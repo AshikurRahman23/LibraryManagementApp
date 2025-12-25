@@ -39,7 +39,20 @@ router.get('/books', async (req, res) => {
 router.post('/books/add', async (req, res) => {
   try {
     const { title, author, total_copies, genre } = req.body;
-    await createBook(title, author, total_copies, genre);
+
+    // Insert new book (existing behavior)
+    const added = await createBook(title, author, total_copies, genre);
+
+    // AFTER successful insertion, remove any suggested_books entries that match this title
+    // SQL: DELETE FROM suggested_books WHERE title = $1
+    try {
+      await db.query('DELETE FROM suggested_books WHERE title = $1', [title]);
+      console.log(`Removed suggestions for title: ${title}`);
+    } catch (delErr) {
+      // Log deletion errors but do not fail the overall request (book insertion succeeded)
+      console.error('Error deleting suggested_books entries:', delErr);
+    }
+
     res.json({ success: true, message: 'Book added' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to add book' });
@@ -69,6 +82,29 @@ router.post('/books/delete', async (req, res) => {
     res.json({ success: true, message: 'Book deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to delete book' });
+  }
+});
+
+/* ---------- Suggested Books (Admin only) ---------- */
+router.get('/suggested-books', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM suggested_books ORDER BY suggested_at DESC');
+    res.json({ success: true, suggestedBooks: rows });
+  } catch (err) {
+    console.error('Failed to fetch suggested books', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch suggested books' });
+  }
+});
+
+// Delete a suggested book by id
+router.delete('/suggested-books/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query('DELETE FROM suggested_books WHERE id = $1', [id]);
+    res.json({ success: true, message: 'Suggested book deleted' });
+  } catch (err) {
+    console.error('Failed to delete suggested book', err);
+    res.status(500).json({ success: false, message: 'Failed to delete suggested book' });
   }
 });
 
