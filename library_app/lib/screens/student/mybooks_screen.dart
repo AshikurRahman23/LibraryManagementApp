@@ -125,163 +125,165 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxWidth),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // Search Bar
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: searchController,
-                            decoration: InputDecoration(
-                              hintText: 'Search books by title, author...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+          : Center(
+            child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+            
+                      // Search Bar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search books by title, author...',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
+                              onSubmitted: (_) => fetchMyBooks(search: searchController.text),
                             ),
-                            onSubmitted: (_) => fetchMyBooks(search: searchController.text),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () =>
-                              fetchMyBooks(search: searchController.text),
-                          child: const Text('🔍 Search'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Currently Borrowed Books
-                    Row(
-                      children: [
-                        const Text(
-                          'Currently Borrowed',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        if (borrowed >= 3)
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: () =>
+                                fetchMyBooks(search: searchController.text),
+                            child: const Text('🔍 Search'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+            
+                      // Currently Borrowed Books
+                      Row(
+                        children: [
                           const Text(
-                            '(Limit Reached)',
-                            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            'Currently Borrowed',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    currentLoans.isEmpty
-                        ? const Text('No books currently borrowed.')
-                        : Column(
-                            children: currentLoans.map((loan) {
-                              final daysLeft =
-                                  calculateDaysLeft(loan['return_date']);
-                              return Card(
-                                elevation: 3,
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                child: ListTile(
-                                  title: Text(
-                                    loan['title'] ?? '',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors.black87),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                      ),
-                                      Text(
-                                        'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      daysLeft < 0
-                                          ? const Text('Overdue',
-                                              style: TextStyle(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.bold))
-                                          : Text('$daysLeft days left',
-                                              style: const TextStyle(
-                                                  color: Colors.green,
-                                                  fontWeight: FontWeight.w600)),
-                                    ],
-                                  ),
-                                  trailing: loan['status'] == 'overdue'
-                                      ? const Text('Overdue',
-                                          style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold))
-                                      : Text(
-                                          loan['status'] ?? '',
-                                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          const SizedBox(width: 8),
+                          if (borrowed >= 3)
+                            const Text(
+                              '(Limit Reached)',
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      currentLoans.isEmpty
+                          ? const Text('No books currently borrowed.')
+                          : Column(
+                              children: currentLoans.map((loan) {
+                                final daysLeft =
+                                    calculateDaysLeft(loan['return_date']);
+                                return Card(
+                                  elevation: 3,
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  child: ListTile(
+                                    title: Text(
+                                      loan['title'] ?? '',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: Colors.black87),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                                         ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-
-                    const SizedBox(height: 30),
-
-                    // Returned Books
-                    const Text('Returned Books',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 10),
-                    pastLoans.isEmpty
-                        ? const Text('No books returned yet.')
-                        : Column(
-                            children: pastLoans.map((loan) {
-                              return Card(
-                                elevation: 3,
-                                margin: const EdgeInsets.symmetric(vertical: 8),
-                                child: ListTile(
-                                  leading: const Icon(Icons.check_circle, color: Colors.green),
-                                  title: Text(
-                                    loan['title'] ?? '',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.black87),
+                                        Text(
+                                          'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        daysLeft < 0
+                                            ? const Text('Overdue',
+                                                style: TextStyle(
+                                                    color: Colors.red,
+                                                    fontWeight: FontWeight.bold))
+                                            : Text('$daysLeft days left',
+                                                style: const TextStyle(
+                                                    color: Colors.green,
+                                                    fontWeight: FontWeight.w600)),
+                                      ],
+                                    ),
+                                    trailing: loan['status'] == 'overdue'
+                                        ? const Text('Overdue',
+                                            style: TextStyle(
+                                                color: Colors.red,
+                                                fontWeight: FontWeight.bold))
+                                        : Text(
+                                            loan['status'] ?? '',
+                                            style: const TextStyle(fontWeight: FontWeight.w500),
+                                          ),
                                   ),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                      ),
-                                      Text(
-                                        'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                      ),
-                                      Text(
-                                        'Returned: ${DateTime.parse(loan['returned_at']).toLocal().toShortDateString()}',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                                      ),
-                                    ],
+                                );
+                              }).toList(),
+                            ),
+            
+                      const SizedBox(height: 30),
+            
+                      // Returned Books
+                      const Text('Returned Books',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 10),
+                      pastLoans.isEmpty
+                          ? const Text('No books returned yet.')
+                          : Column(
+                              children: pastLoans.map((loan) {
+                                return Card(
+                                  elevation: 3,
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.check_circle, color: Colors.green),
+                                    title: Text(
+                                      loan['title'] ?? '',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.black87),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Issued: ${DateTime.parse(loan['issued_at']).toLocal().toShortDateString()}',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          'Return: ${DateTime.parse(loan['return_date']).toLocal().toShortDateString()}',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          'Returned: ${DateTime.parse(loan['returned_at']).toLocal().toShortDateString()}',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: Text(
+                                      loan['status'] ?? '',
+                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                    ),
                                   ),
-                                  trailing: Text(
-                                    loan['status'] ?? '',
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-
-                    const SizedBox(height: 30),
-                  ],
+                                );
+                              }).toList(),
+                            ),
+            
+                      const SizedBox(height: 30),
+                    ],
+                  ),
                 ),
               ),
-            ),
+          ),
     );
   }
 }
