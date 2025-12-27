@@ -61,6 +61,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     String value,
     String subtitle,
   ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    double iconSize = 24;
+    double titleSize = 14;
+    double valueSize = 18;
+    double subtitleSize = 12;
+
+    // shrink font sizes on very small screens
+    if (screenWidth < 325) {
+      iconSize = 18;
+      titleSize = 12;
+      valueSize = 14;
+      subtitleSize = 10;
+    } else if (screenWidth < 400) {
+      iconSize = 20;
+      titleSize = 13;
+      valueSize = 16;
+      subtitleSize = 11;
+    }
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -69,22 +88,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 24, color: Theme.of(context).primaryColor),
+            Icon(icon, size: iconSize, color: Theme.of(context).primaryColor),
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(
-                  fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: TextStyle(
+                fontSize: valueSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(fontSize: subtitleSize, color: Colors.grey),
             ),
           ],
         ),
@@ -101,31 +123,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     switch (route) {
       case '/admin/books':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => AdminBooksScreen()));
+          context,
+          MaterialPageRoute(builder: (_) => AdminBooksScreen()),
+        );
         break;
       case '/admin/students':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => AdminStudentsScreen()));
+          context,
+          MaterialPageRoute(builder: (_) => AdminStudentsScreen()),
+        );
         break;
       case '/admin/loans':
         Navigator.pushReplacementNamed(context, '/admin/loans');
         break;
       case '/admin/requests':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => AdminRequestsScreen()));
+          context,
+          MaterialPageRoute(builder: (_) => AdminRequestsScreen()),
+        );
         break;
       case '/admin/suggested-books':
         Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => LoginScreen()));
+          context,
+          MaterialPageRoute(builder: (_) => LoginScreen()),
+        );
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    int crossAxisCount;
+    if (screenWidth < 525) {
+      crossAxisCount = 1; // small mobile
+    } else {
+      crossAxisCount = 2; // tablets / medium screens
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -148,7 +186,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(
+                value: '/admin/suggested-books',
+                child: Text('Suggested'),
+              ),
               PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
@@ -158,67 +199,63 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
+                constraints: const BoxConstraints(maxWidth: 1100), // <-- max width
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Overview',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      GridView.count(
+  crossAxisCount: crossAxisCount,
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  crossAxisSpacing: 12,
+  mainAxisSpacing: 12,
+  childAspectRatio: (() {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    if (screenHeight < 325) {
+      return 1.2; // very short screens
+    } else if (screenHeight > 900) {
+      return 2.5; // tall screens — normal ratio
+    } else {
+      return 2.0; // medium-height screens — slightly smaller height
+    }
+  })(),
+  children: [
+    buildStatCard(Icons.menu_book, 'Total Books', safeString(stats['totalBooks']), 'Books in library'),
+    buildStatCard(Icons.library_books, 'Total Copies', safeString(stats['totalCopies']), 'All copies'),
+    buildStatCard(Icons.people, 'Total Students', safeString(stats['totalStudents']), 'Registered users'),
+    buildStatCard(Icons.bookmark, 'Books Loaned', safeString(stats['booksLoaned']), 'Currently borrowed'),
+    buildStatCard(Icons.check_circle, 'Books Returned', safeString(stats['booksReturned']), 'Successfully returned'),
+    buildStatCard(Icons.warning_amber, 'Overdue Books', safeString(stats['overdueBooks']), 'Late returns'),
+  ],
+),
+
+                      const SizedBox(height: 24),
+                      Center(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            Text(
+                              '© ${DateTime.now().year} Online Library Management System',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
                             const Text(
-                              'Overview',
-                              style: TextStyle(
-                                  fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 16),
-                            GridView.count(
-                              crossAxisCount:
-                                  MediaQuery.of(context).size.width < 800 ? 2 : 3,
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.6,
-                              children: [
-                                buildStatCard(Icons.menu_book, 'Total Books',
-                                    safeString(stats['totalBooks']),
-                                    'Books in library'),
-                                buildStatCard(Icons.library_books, 'Total Copies',
-                                    safeString(stats['totalCopies']), 'All copies'),
-                                buildStatCard(Icons.people, 'Total Students',
-                                    safeString(stats['totalStudents']), 'Registered users'),
-                                buildStatCard(Icons.bookmark, 'Books Loaned',
-                                    safeString(stats['booksLoaned']), 'Currently borrowed'),
-                                buildStatCard(Icons.check_circle, 'Books Returned',
-                                    safeString(stats['booksReturned']), 'Successfully returned'),
-                                buildStatCard(Icons.warning_amber, 'Overdue Books',
-                                    safeString(stats['overdueBooks']), 'Late returns'),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            Center(
-                              child: Column(
-                                children: [
-                                  Text(
-                                      '© ${DateTime.now().year} Online Library Management System',
-                                      style: const TextStyle(fontSize: 12)),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Contact: library@university.edu | +880-123-456789',
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ],
-                              ),
+                              'Contact: library@university.edu | +880-123-456789',
+                              style: TextStyle(fontSize: 12),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
