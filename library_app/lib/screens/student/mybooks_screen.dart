@@ -123,7 +123,6 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     final TextEditingController phoneController = TextEditingController();
     final TextEditingController pinController = TextEditingController();
     final TextEditingController amountController = TextEditingController(text: penalty.toString());
-    final TextEditingController referenceController = TextEditingController();
     bool isProcessing = false;
 
     showDialog(
