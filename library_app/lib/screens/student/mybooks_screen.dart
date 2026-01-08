@@ -129,205 +129,101 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
+      builder: (ctx) {
+        final screenWidth = MediaQuery.of(ctx).size.width;
+        final isSmallScreen = screenWidth < 400;
+        
+        return StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          titlePadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          actionsPadding: const EdgeInsets.all(8),
           title: Row(
             children: [
-              const Icon(Icons.payment, color: Colors.blue),
-              const SizedBox(width: 8),
-              const Text('Pay Penalty'),
+              Icon(Icons.payment, color: Colors.blue, size: isSmallScreen ? 20 : 24),
+              const SizedBox(width: 6),
+              Flexible(child: Text('Pay Penalty', style: TextStyle(fontSize: isSmallScreen ? 16 : 18))),
             ],
           ),
-          content: SingleChildScrollView(
+          content: SizedBox(
+            width: isSmallScreen ? screenWidth * 0.85 : 320,
+            child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Book info
+                // Book info - compact
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        safeString(loan['title']),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Total Penalty: ৳$penalty',
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                      Expanded(
+                        child: Text(
+                          safeString(loan['title']),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '৳$penalty',
+                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 
-                // Amount input field
-                const Text(
-                  'Payment Amount (৳)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
+                // Amount input field - compact
                 TextField(
                   controller: amountController,
                   decoration: InputDecoration(
-                    hintText: 'Enter amount to pay',
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text('৳', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    ),
+                    labelText: 'Amount (৳)',
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    prefixIcon: const Icon(Icons.money, size: 20),
                     border: const OutlineInputBorder(),
-                    helperText: 'You can pay partially. Minimum ৳10',
-                    suffixText: '৳',
+                    helperText: 'Min ৳10',
+                    helperStyle: const TextStyle(fontSize: 10),
                   ),
+                  style: const TextStyle(fontSize: 14),
                   keyboardType: TextInputType.number,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 
-                // Reference field (Student ID/Roll)
-                const Text(
-                  'Reference (Student ID/Roll)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: referenceController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your Student ID or Roll',
-                    prefixIcon: Icon(Icons.badge),
-                    border: OutlineInputBorder(),
-                    helperText: 'This will be shown to admin for verification',
-                  ),
-                  textCapitalization: TextCapitalization.characters,
-                ),
-                const SizedBox(height: 16),
-                
-                // Payment method selection
-                const Text(
-                  'Select Payment Method',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
+                // Payment method selection - compact
+                Text('Payment Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 12 : 13)),
+                const SizedBox(height: 6),
                 Row(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedMethod = 'card'),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: selectedMethod == 'card' ? Colors.blue.shade50 : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: selectedMethod == 'card' ? Colors.blue : Colors.grey.shade300,
-                              width: selectedMethod == 'card' ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.credit_card, 
-                                color: selectedMethod == 'card' ? Colors.blue : Colors.grey,
-                                size: 28,
-                              ),
-                              const SizedBox(height: 4),
-                              Text('Card', 
-                                style: TextStyle(
-                                  fontWeight: selectedMethod == 'card' ? FontWeight.bold : FontWeight.normal,
-                                  color: selectedMethod == 'card' ? Colors.blue : Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedMethod = 'bkash'),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: selectedMethod == 'bkash' ? const Color(0xFFE2136E).withOpacity(0.1) : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: selectedMethod == 'bkash' ? const Color(0xFFE2136E) : Colors.grey.shade300,
-                              width: selectedMethod == 'bkash' ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.phone_android, 
-                                color: selectedMethod == 'bkash' ? const Color(0xFFE2136E) : Colors.grey,
-                                size: 28,
-                              ),
-                              const SizedBox(height: 4),
-                              Text('bKash', 
-                                style: TextStyle(
-                                  fontWeight: selectedMethod == 'bkash' ? FontWeight.bold : FontWeight.normal,
-                                  color: selectedMethod == 'bkash' ? const Color(0xFFE2136E) : Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedMethod = 'nagad'),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: selectedMethod == 'nagad' ? const Color(0xFFF6921E).withOpacity(0.1) : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: selectedMethod == 'nagad' ? const Color(0xFFF6921E) : Colors.grey.shade300,
-                              width: selectedMethod == 'nagad' ? 2 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(Icons.smartphone, 
-                                color: selectedMethod == 'nagad' ? const Color(0xFFF6921E) : Colors.grey,
-                                size: 28,
-                              ),
-                              const SizedBox(height: 4),
-                              Text('Nagad', 
-                                style: TextStyle(
-                                  fontWeight: selectedMethod == 'nagad' ? FontWeight.bold : FontWeight.normal,
-                                  color: selectedMethod == 'nagad' ? const Color(0xFFF6921E) : Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    _buildMethodButton('card', 'Card', Icons.credit_card, Colors.blue, selectedMethod, (m) => setDialogState(() => selectedMethod = m), isSmallScreen),
+                    const SizedBox(width: 6),
+                    _buildMethodButton('bkash', 'bKash', Icons.phone_android, const Color(0xFFE2136E), selectedMethod, (m) => setDialogState(() => selectedMethod = m), isSmallScreen),
+                    const SizedBox(width: 6),
+                    _buildMethodButton('nagad', 'Nagad', Icons.smartphone, const Color(0xFFF6921E), selectedMethod, (m) => setDialogState(() => selectedMethod = m), isSmallScreen),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 
-                // Card payment fields
+                // Card payment fields - compact
                 if (selectedMethod == 'card') ...[
                   TextField(
                     controller: cardNumberController,
                     decoration: const InputDecoration(
                       labelText: 'Card Number',
                       hintText: '1234 5678 9012 3456',
-                      prefixIcon: Icon(Icons.credit_card),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.credit_card, size: 20),
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
+                    style: const TextStyle(fontSize: 14),
                     keyboardType: TextInputType.number,
                     maxLength: 19,
                   ),
@@ -338,23 +234,29 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                         child: TextField(
                           controller: expiryController,
                           decoration: const InputDecoration(
-                            labelText: 'Expiry',
-                            hintText: 'MM/YY',
+                            labelText: 'MM/YY',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(),
+                            counterText: '',
                           ),
+                          style: const TextStyle(fontSize: 14),
                           keyboardType: TextInputType.datetime,
                           maxLength: 5,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           controller: cvvController,
                           decoration: const InputDecoration(
                             labelText: 'CVV',
-                            hintText: '123',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(),
+                            counterText: '',
                           ),
+                          style: const TextStyle(fontSize: 14),
                           keyboardType: TextInputType.number,
                           maxLength: 3,
                           obscureText: true,
@@ -366,44 +268,31 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(
-                      labelText: 'Cardholder Name',
-                      hintText: 'John Doe',
-                      prefixIcon: Icon(Icons.person),
+                      labelText: 'Name on Card',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.person, size: 20),
                       border: OutlineInputBorder(),
                     ),
+                    style: const TextStyle(fontSize: 14),
                     textCapitalization: TextCapitalization.words,
                   ),
                 ],
                 
-                // bKash payment fields
+                // bKash payment fields - compact
                 if (selectedMethod == 'bkash') ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2136E).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.phone_android, color: const Color(0xFFE2136E), size: 40),
-                        const SizedBox(width: 12),
-                        const Text('bKash', style: TextStyle(
-                          fontSize: 24, 
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFE2136E),
-                        )),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   TextField(
                     controller: phoneController,
                     decoration: const InputDecoration(
-                      labelText: 'bKash Account Number',
+                      labelText: 'bKash Number',
                       hintText: '01XXXXXXXXX',
-                      prefixIcon: Icon(Icons.phone, color: Color(0xFFE2136E)),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.phone, color: Color(0xFFE2136E), size: 20),
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
+                    style: const TextStyle(fontSize: 14),
                     keyboardType: TextInputType.phone,
                     maxLength: 11,
                   ),
@@ -411,46 +300,35 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                   TextField(
                     controller: pinController,
                     decoration: const InputDecoration(
-                      labelText: 'bKash PIN',
+                      labelText: 'PIN',
                       hintText: '****',
-                      prefixIcon: Icon(Icons.lock, color: Color(0xFFE2136E)),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.lock, color: Color(0xFFE2136E), size: 20),
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
+                    style: const TextStyle(fontSize: 14),
                     keyboardType: TextInputType.number,
                     maxLength: 5,
                     obscureText: true,
                   ),
                 ],
                 
-                // Nagad payment fields
+                // Nagad payment fields - compact
                 if (selectedMethod == 'nagad') ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF6921E).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.smartphone, color: const Color(0xFFF6921E), size: 40),
-                        const SizedBox(width: 12),
-                        const Text('Nagad', style: TextStyle(
-                          fontSize: 24, 
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFF6921E),
-                        )),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   TextField(
                     controller: phoneController,
                     decoration: const InputDecoration(
-                      labelText: 'Nagad Account Number',
+                      labelText: 'Nagad Number',
                       hintText: '01XXXXXXXXX',
-                      prefixIcon: Icon(Icons.phone, color: Color(0xFFF6921E)),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.phone, color: Color(0xFFF6921E), size: 20),
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
+                    style: const TextStyle(fontSize: 14),
                     keyboardType: TextInputType.phone,
                     maxLength: 11,
                   ),
@@ -458,33 +336,36 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                   TextField(
                     controller: pinController,
                     decoration: const InputDecoration(
-                      labelText: 'Nagad PIN',
+                      labelText: 'PIN',
                       hintText: '****',
-                      prefixIcon: Icon(Icons.lock, color: Color(0xFFF6921E)),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      prefixIcon: Icon(Icons.lock, color: Color(0xFFF6921E), size: 20),
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
+                    style: const TextStyle(fontSize: 14),
                     keyboardType: TextInputType.number,
                     maxLength: 5,
                     obscureText: true,
                   ),
                 ],
                 
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
-                      const SizedBox(width: 8),
+                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 16),
+                      const SizedBox(width: 6),
                       const Expanded(
                         child: Text(
-                          'This is a demo payment gateway. No real charges will be made.',
-                          style: TextStyle(fontSize: 12, color: Colors.blue),
+                          'Demo payment - no real charges.',
+                          style: TextStyle(fontSize: 10, color: Colors.blue),
                         ),
                       ),
                     ],
@@ -493,12 +374,13 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               ],
             ),
           ),
+          ),
           actions: [
             TextButton(
               onPressed: isProcessing ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(fontSize: 13)),
             ),
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: isProcessing
                   ? null
                   : () async {
@@ -553,7 +435,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                           loanId: loan['id'],
                           amount: payAmount,
                           paymentMethod: selectedMethod,
-                          reference: referenceController.text.isNotEmpty ? referenceController.text : null,
+                          reference: null,
                         );
                         
                         if (!mounted) return;
@@ -577,15 +459,15 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                         _showPaymentSuccessDialog(loan, payAmount, penalty, selectedMethod, 'TXN${DateTime.now().millisecondsSinceEpoch}');
                       }
                     },
-              icon: isProcessing
+              child: isProcessing
                   ? const SizedBox(
-                      width: 16,
-                      height: 16,
+                      width: 14,
+                      height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.lock),
-              label: Text(isProcessing ? 'Processing...' : 'Pay Now'),
+                  : Text(isProcessing ? '...' : 'Pay', style: const TextStyle(fontSize: 13)),
               style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 backgroundColor: selectedMethod == 'bkash' 
                     ? const Color(0xFFE2136E) 
                     : selectedMethod == 'nagad' 
@@ -595,6 +477,42 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               ),
             ),
           ],
+        ),
+      );
+      },
+    );
+  }
+
+  // Helper method for payment method buttons
+  Widget _buildMethodButton(String method, String label, IconData icon, Color color, String selectedMethod, void Function(String) onSelect, bool isSmall) {
+    final isSelected = selectedMethod == method;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onSelect(method),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: isSmall ? 6 : 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected ? color : Colors.grey.shade300,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: isSelected ? color : Colors.grey, size: isSmall ? 20 : 24),
+              const SizedBox(height: 2),
+              Text(label, 
+                style: TextStyle(
+                  fontSize: isSmall ? 10 : 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? color : Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

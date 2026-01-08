@@ -211,7 +211,6 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
                                 final method = safeString(payment['payment_method']);
                                 final paidAt = safeParseDate(payment['created_at']);
                                 final roll = safeString(payment['student_id']);
-                                final reference = safeString(payment['reference']);
                                 return Card(
                                   elevation: 2,
                                   margin: const EdgeInsets.symmetric(vertical: 6),
@@ -233,12 +232,6 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
                                     subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Show Reference (student-provided) first
-                                        if (reference.isNotEmpty)
-                                          Text(
-                                            'Reference: $reference',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
-                                          ),
                                         // Show Roll/Student ID from user record
                                         Text(
                                           'Roll: $roll',

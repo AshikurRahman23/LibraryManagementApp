@@ -13,10 +13,35 @@
 // - Keep conversions defensive (try/catch) and non-intrusive so existing app
 //   behavior remains unchanged.
 
+import 'package:flutter/foundation.dart';
+
+/// Check if an object is a JavaScript interop object (on web)
+bool _isJsObject(Object? value) {
+  if (!kIsWeb || value == null) return false;
+  final typeName = value.runtimeType.toString();
+  return typeName.contains('JavaScript') || 
+         typeName.contains('JSObject') ||
+         typeName.contains('LegacyJavaScript');
+}
+
 String safeString(Object? value) {
   if (value == null) return '';
   if (value is String) return value;
   if (value is num || value is bool) return value.toString();
+
+  // Handle JS objects specially on web
+  if (_isJsObject(value)) {
+    try {
+      final str = value.toString();
+      // If it's still showing as a JS object, return empty or placeholder
+      if (str.contains('LegacyJavaScriptObject') || str.contains('JSObject')) {
+        return '';
+      }
+      return str;
+    } catch (e) {
+      return '';
+    }
+  }
 
   // Fallback: attempt a safe toString() call; if that fails, return a placeholder.
   try {
@@ -49,44 +74,81 @@ String safeDateFormatted(Object? value) {
 // non-Dart JS objects inside widget state.
 Map<String, dynamic> sanitizeMap(Map raw) {
   final out = <String, dynamic>{};
-  raw.forEach((key, value) {
-    final k = key.toString();
-    final v = value;
-    if (v == null) {
-      out[k] = null;
-      return;
-    }
-    if (v is String || v is num || v is bool) {
-      out[k] = v;
-      return;
-    }
-    if (v is Map) {
-      out[k] = sanitizeMap(v);
-      return;
-    }
-    if (v is Iterable) {
-      out[k] = v.map((e) => e is Map ? sanitizeMap(e) : safeString(e)).toList();
-      return;
-    }
+  try {
+    raw.forEach((key, value) {
+      final k = safeString(key);
+      final v = value;
+      if (v == null) {
+        out[k] = null;
+        return;
+      }
+      
+      // Check for JS objects first
+      if (_isJsObject(v)) {
+        out[k] = safeString(v);
+        return;
+      }
+      
+      if (v is String || v is num || v is bool) {
+        out[k] = v;
+        return;
+      }
+      if (v is Map) {
+        out[k] = sanitizeMap(v);
+        return;
+      }
+      if (v is Iterable) {
+        out[k] = _sanitizeList(v);
+        return;
+      }
 
-    // Fallback: convert to string, try to coerce to number where sensible.
-    final s = safeString(v);
-    final i = int.tryParse(s);
-    if (i != null) {
-      out[k] = i;
-      return;
-    }
-    final d = double.tryParse(s);
-    if (d != null) {
-      out[k] = d;
-      return;
-    }
+      // Fallback: convert to string, try to coerce to number where sensible.
+      final s = safeString(v);
+      final i = int.tryParse(s);
+      if (i != null) {
+        out[k] = i;
+        return;
+      }
+      final d = double.tryParse(s);
+      if (d != null) {
+        out[k] = d;
+        return;
+      }
 
-    out[k] = s;
-  });
+      out[k] = s;
+    });
+  } catch (e) {
+    // If iteration fails (JS object issues), return empty map
+    debugPrint('sanitizeMap error: $e');
+  }
   return out;
 }
 
+/// Helper to sanitize a list, handling JS objects
+List<dynamic> _sanitizeList(Iterable raw) {
+  try {
+    return raw.map((e) {
+      if (e == null) return null;
+      if (_isJsObject(e)) return safeString(e);
+      if (e is String || e is num || e is bool) return e;
+      if (e is Map) return sanitizeMap(e);
+      if (e is Iterable) return _sanitizeList(e);
+      return safeString(e);
+    }).toList();
+  } catch (e) {
+    return [];
+  }
+}
+
 List<Map<String, dynamic>> sanitizeListOfMaps(List raw) {
-  return raw.map((e) => e is Map ? sanitizeMap(e) : <String, dynamic>{}).cast<Map<String, dynamic>>().toList();
+  try {
+    return raw.map((e) {
+      if (_isJsObject(e)) return <String, dynamic>{};
+      if (e is Map) return sanitizeMap(e);
+      return <String, dynamic>{};
+    }).cast<Map<String, dynamic>>().toList();
+  } catch (e) {
+    debugPrint('sanitizeListOfMaps error: $e');
+    return [];
+  }
 }

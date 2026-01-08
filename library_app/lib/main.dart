@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'screens/auth/login_screen.dart';
@@ -18,6 +19,19 @@ import 'screens/student/mybooks_screen.dart';
 import 'api/api_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Custom error handler to prevent crashes from JS interop issues on web
+  FlutterError.onError = (FlutterErrorDetails details) {
+    if (kIsWeb && details.exception.toString().contains('LegacyJavaScriptObject')) {
+      // Suppress this specific error on web
+      debugPrint('Suppressed JS interop error: ${details.exception}');
+      return;
+    }
+    // Default error handling for other errors
+    FlutterError.presentError(details);
+  };
+  
   runApp(const LibraryApp());
 }
 
