@@ -112,9 +112,6 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final maxWidth = width > 1100 ? 1100.0 : width * 0.95;
-
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -151,10 +148,10 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -164,86 +161,71 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      payments.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade400),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No payment history yet.',
-                                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Column(
-                              children: payments.map((payment) {
-                                final method = safeString(payment['payment_method']);
-                                final paidAt = safeParseDate(payment['paid_at']);
-                                return Card(
-                                  elevation: 3,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: _getPaymentColor(method).withOpacity(0.2),
-                                      child: Icon(
-                                        _getPaymentIcon(method),
-                                        color: _getPaymentColor(method),
+                      Expanded(
+                        child: payments.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade400),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No payment history yet.',
+                                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: payments.length,
+                                itemBuilder: (_, index) {
+                                  final payment = payments[index];
+                                  final method = safeString(payment['payment_method']);
+                                  final paidAt = safeParseDate(payment['created_at']);
+                                  return Card(
+                                    elevation: 2,
+                                    margin: const EdgeInsets.symmetric(vertical: 6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: _getPaymentColor(method).withOpacity(0.2),
+                                        child: Icon(
+                                          _getPaymentIcon(method),
+                                          color: _getPaymentColor(method),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        safeString(payment['book_title']),
+                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Method: ${method.toUpperCase()}'),
+                                          Text(
+                                            'Date: ${paidAt != null ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}" : 'N/A'}',
+                                          ),
+                                          Text(
+                                            'Transaction: ${safeString(payment['transaction_id'])}',
+                                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                          ),
+                                        ],
+                                      ),
+                                      trailing: Text(
+                                        '৳${payment['amount'] ?? 0}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: Colors.green,
+                                        ),
                                       ),
                                     ),
-                                    title: Text(
-                                      safeString(payment['book_title']),
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Method: ${method.toUpperCase()}'),
-                                        Text(
-                                          'Date: ${paidAt != null ? paidAt.toShortDateString() : 'N/A'}',
-                                        ),
-                                        Text(
-                                          'Transaction ID: ${safeString(payment['transaction_id'])}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                                        ),
-                                      ],
-                                    ),
-                                    trailing: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '৳${payment['amount'] ?? 0}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.shade100,
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Text(
-                                            'PAID',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.green,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                      const SizedBox(height: 30),
+                                  );
+                                },
+                              ),
+                      ),
                     ],
                   ),
                 ),

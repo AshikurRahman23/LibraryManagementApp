@@ -375,10 +375,10 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// Delete student (Super Admin only)
+  /// Delete student (Admin or Super Admin)
   Future<Map<String, dynamic>> deleteStudent({required int id}) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/superadmin/students/$id'),
+      Uri.parse('$baseUrl/admin/students/$id'),
       headers: await _getHeaders(withAuth: true),
     );
     return jsonDecode(response.body);
@@ -391,6 +391,7 @@ class ApiService {
     required int loanId,
     required int amount,
     required String paymentMethod,
+    String? reference,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/student/payments'),
@@ -399,6 +400,7 @@ class ApiService {
         'loan_id': loanId,
         'amount': amount,
         'payment_method': paymentMethod,
+        'reference': reference,
       }),
     );
     return jsonDecode(response.body);

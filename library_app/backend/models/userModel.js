@@ -40,8 +40,14 @@ export const deleteStudent = async (id) => {
         return null;
     }
     
-    // Delete associated loans first
-    await pool.query('DELETE FROM loans WHERE user_id=$1', [id]);
+    // Delete associated payments first (references loans)
+    await pool.query('DELETE FROM payments WHERE user_id=$1', [id]);
+    
+    // Delete associated borrow requests
+    await pool.query('DELETE FROM borrow_requests WHERE student_id=$1', [id]);
+    
+    // Delete associated loans
+    await pool.query('DELETE FROM loans WHERE student_id=$1', [id]);
     
     // Delete the student
     const res = await pool.query(

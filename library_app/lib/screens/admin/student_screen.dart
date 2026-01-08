@@ -93,9 +93,81 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
       case '/admin/suggested-books':
         Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
+      case '/admin/payments':
+        Navigator.pushReplacementNamed(context, '/admin/payments');
+        break;
       case '/auth/logout':
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
         break;
+    }
+  }
+
+  void _showDeleteDialog(Map<String, dynamic> student) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Student'),
+        content: Text(
+          'Are you sure you want to delete "${student['name']}"?\n\n'
+          'Email: ${student['email']}\n'
+          'Student ID: ${student['student_id']}\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteStudent(student);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteStudent(Map<String, dynamic> student) async {
+    try {
+      setState(() => loading = true);
+      final result = await api.deleteStudent(id: student['id']);
+      
+      if (!mounted) return;
+      
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Student "${student['name']}" deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        fetchStudents();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to delete student'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -131,6 +203,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
             ],
           ),
           IconButton(
@@ -248,6 +321,21 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                                   ),
                                                 ),
                                               ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            // Delete button
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: ElevatedButton.icon(
+                                                onPressed: () => _showDeleteDialog(student),
+                                                icon: const Icon(Icons.delete, size: 18),
+                                                label: const Text('Delete'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),

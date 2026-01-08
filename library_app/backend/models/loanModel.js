@@ -92,7 +92,8 @@ export async function getSearchLoans(search) {
 
 export const getStudentLoans = async (student_id) => {
     const res = await pool.query(
-        `SELECT l.id, l.book_id, b.title, l.status, l.issued_at, l.return_date, l.returned_at
+        `SELECT l.id, l.book_id, b.title, l.status, l.issued_at, l.return_date, l.returned_at,
+                COALESCE((SELECT SUM(amount) FROM payments WHERE loan_id = l.id), 0) as total_paid
          FROM loans l
          JOIN books b ON l.book_id=b.id
          WHERE l.student_id=$1

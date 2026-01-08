@@ -135,6 +135,9 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
       case '/admin/suggested-books':
         Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
+      case '/admin/payments':
+        Navigator.pushReplacementNamed(context, '/admin/payments');
+        break;
 
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -175,6 +178,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
             ],
           ),
           IconButton(

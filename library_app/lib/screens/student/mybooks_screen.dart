@@ -122,6 +122,8 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
     final TextEditingController pinController = TextEditingController();
+    final TextEditingController amountController = TextEditingController(text: penalty.toString());
+    final TextEditingController referenceController = TextEditingController();
     bool isProcessing = false;
 
     showDialog(
@@ -157,7 +159,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Penalty Amount: ৳$penalty',
+                        'Total Penalty: ৳$penalty',
                         style: const TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.bold,
@@ -166,6 +168,46 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Amount input field
+                const Text(
+                  'Payment Amount (৳)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: amountController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter amount to pay',
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text('৳', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    ),
+                    border: const OutlineInputBorder(),
+                    helperText: 'You can pay partially. Minimum ৳10',
+                    suffixText: '৳',
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 16),
+                
+                // Reference field (Student ID/Roll)
+                const Text(
+                  'Reference (Student ID/Roll)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: referenceController,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter your Student ID or Roll',
+                    prefixIcon: Icon(Icons.badge),
+                    border: OutlineInputBorder(),
+                    helperText: 'This will be shown to admin for verification',
+                  ),
+                  textCapitalization: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 16),
                 
@@ -460,6 +502,27 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               onPressed: isProcessing
                   ? null
                   : () async {
+                      // Validate amount
+                      final payAmount = int.tryParse(amountController.text) ?? 0;
+                      if (payAmount < 10) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Minimum payment amount is ৳10'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      if (payAmount > penalty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Amount cannot exceed penalty (৳$penalty)'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+                      
                       // Validation based on payment method
                       bool isValid = false;
                       if (selectedMethod == 'card') {
@@ -488,8 +551,9 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       try {
                         final result = await apiService.makePayment(
                           loanId: loan['id'],
-                          amount: penalty,
+                          amount: payAmount,
                           paymentMethod: selectedMethod,
+                          reference: referenceController.text.isNotEmpty ? referenceController.text : null,
                         );
                         
                         if (!mounted) return;
@@ -497,7 +561,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
 
                         if (result['success'] == true) {
                           // Show success dialog
-                          _showPaymentSuccessDialog(loan, penalty, selectedMethod, result['transaction_id'] ?? 'TXN${DateTime.now().millisecondsSinceEpoch}');
+                          _showPaymentSuccessDialog(loan, payAmount, penalty, selectedMethod, result['transaction_id'] ?? 'TXN${DateTime.now().millisecondsSinceEpoch}');
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -510,7 +574,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                         if (!mounted) return;
                         Navigator.pop(ctx);
                         // Demo mode - show success anyway
-                        _showPaymentSuccessDialog(loan, penalty, selectedMethod, 'TXN${DateTime.now().millisecondsSinceEpoch}');
+                        _showPaymentSuccessDialog(loan, payAmount, penalty, selectedMethod, 'TXN${DateTime.now().millisecondsSinceEpoch}');
                       }
                     },
               icon: isProcessing
@@ -520,13 +584,13 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.lock),
-              label: Text(isProcessing ? 'Processing...' : 'Pay ৳$penalty'),
+              label: Text(isProcessing ? 'Processing...' : 'Pay Now'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: selectedMethod == 'bkash' 
                     ? const Color(0xFFE2136E) 
                     : selectedMethod == 'nagad' 
                         ? const Color(0xFFF6921E) 
-                        : Colors.green,
+                        : Colors.blue,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -536,7 +600,8 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     );
   }
 
-  void _showPaymentSuccessDialog(Map<String, dynamic> loan, int penalty, String method, String transactionId) {
+  void _showPaymentSuccessDialog(Map<String, dynamic> loan, int paidAmount, int totalPenalty, String method, String transactionId) {
+    final remaining = totalPenalty - paidAmount;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -551,17 +616,26 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Amount Paid: ৳$penalty'),
+            Text('Amount Paid: ৳$paidAmount', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
+            if (remaining > 0) ...[
+              Text('Remaining Penalty: ৳$remaining', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+            ] else ...[
+              const Text('✅ Penalty fully paid!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+            ],
             Text('Book: ${safeString(loan['title'])}'),
             const SizedBox(height: 8),
             Text('Method: ${method.toUpperCase()}'),
             const SizedBox(height: 8),
             Text('Transaction ID: $transactionId', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             const SizedBox(height: 16),
-            const Text(
-              'Thank you for your payment! Please return the book to the library.',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              remaining > 0 
+                ? 'Thank you! Please pay the remaining ৳$remaining to clear your penalty.'
+                : 'Thank you for your payment! Please return the book to the library.',
+              style: const TextStyle(color: Colors.grey),
             ),
           ],
         ),
@@ -731,7 +805,11 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                           : Column(
                               children: filteredCurrentLoans.map((loan) {
                                 final daysLeft = calculateDaysLeft(loan['return_date']);
-                                final penalty = calculatePenalty(loan['return_date']);
+                                final totalPenalty = calculatePenalty(loan['return_date']);
+                                final totalPaid = (loan['total_paid'] ?? 0) is int 
+                                    ? loan['total_paid'] ?? 0 
+                                    : int.tryParse(loan['total_paid'].toString()) ?? 0;
+                                final int remainingPenalty = (totalPenalty - totalPaid).clamp(0, totalPenalty).toInt();
                                 return Card(
                                   elevation: 3,
                                   margin: const EdgeInsets.symmetric(vertical: 8),
@@ -774,11 +852,35 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                                         style: const TextStyle(
                                                             color: Colors.red,
                                                             fontWeight: FontWeight.bold)),
-                                                    Text('💰 Penalty: ৳$penalty',
-                                                        style: const TextStyle(
-                                                            color: Colors.red,
-                                                            fontSize: 14,
-                                                            fontWeight: FontWeight.bold)),
+                                                    if (totalPaid > 0) ...[
+                                                      Text('💰 Total Penalty: ৳$totalPenalty',
+                                                          style: const TextStyle(
+                                                              color: Colors.grey,
+                                                              fontSize: 13)),
+                                                      Text('✅ Paid: ৳$totalPaid',
+                                                          style: const TextStyle(
+                                                              color: Colors.green,
+                                                              fontSize: 13,
+                                                              fontWeight: FontWeight.w500)),
+                                                      if (remainingPenalty > 0)
+                                                        Text('💵 Remaining: ৳$remainingPenalty',
+                                                            style: const TextStyle(
+                                                                color: Colors.orange,
+                                                                fontSize: 14,
+                                                                fontWeight: FontWeight.bold))
+                                                      else
+                                                        const Text('✅ Penalty Cleared!',
+                                                            style: TextStyle(
+                                                                color: Colors.green,
+                                                                fontSize: 14,
+                                                                fontWeight: FontWeight.bold)),
+                                                    ] else ...[
+                                                      Text('💰 Penalty: ৳$totalPenalty',
+                                                          style: const TextStyle(
+                                                              color: Colors.red,
+                                                              fontSize: 14,
+                                                              fontWeight: FontWeight.bold)),
+                                                    ],
                                                   ],
                                                 )
                                               : Text('$daysLeft days left',
@@ -788,21 +890,23 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                         ],
                                       );
                                     }),
-                                    trailing: daysLeft < 0 && penalty > 0
+                                    trailing: daysLeft < 0 && remainingPenalty > 0
                                         ? IconButton(
                                             icon: const Icon(Icons.payment, color: Colors.red, size: 32),
-                                            tooltip: 'Pay Penalty ৳$penalty',
-                                            onPressed: () => _showPaymentDialog(loan, penalty),
+                                            tooltip: 'Pay Penalty ৳$remainingPenalty',
+                                            onPressed: () => _showPaymentDialog(loan, remainingPenalty),
                                           )
-                                        : loan['status'] == 'overdue'
-                                            ? const Text('Overdue',
-                                                style: TextStyle(
-                                                    color: Colors.red,
-                                                    fontWeight: FontWeight.bold))
-                                            : Text(
-                                                safeString(loan['status']),
-                                                style: const TextStyle(fontWeight: FontWeight.w500),
-                                              ),
+                                        : daysLeft < 0 && remainingPenalty == 0
+                                            ? const Icon(Icons.check_circle, color: Colors.green, size: 32)
+                                            : loan['status'] == 'overdue'
+                                                ? const Text('Overdue',
+                                                    style: TextStyle(
+                                                        color: Colors.red,
+                                                        fontWeight: FontWeight.bold))
+                                                : Text(
+                                                    safeString(loan['status']),
+                                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                                  ),
                                   ),
                                 );
                               }).toList(),

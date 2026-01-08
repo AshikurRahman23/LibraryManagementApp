@@ -3,7 +3,7 @@ import db from '../models/db.js';
 import {
   getAllBooks, getSearchBooks, createBook, updateBook, deleteBook
 } from '../models/bookModel.js';
-import { getAllStudents, getSearchStudents } from '../models/userModel.js';
+import { getAllStudents, getSearchStudents, deleteStudent } from '../models/userModel.js';
 import {
   getAllLoans, getSearchLoans, issueBook, returnBook, getDashboardStats
 } from '../models/loanModel.js';
@@ -118,6 +118,29 @@ router.get('/students', async (req, res) => {
     res.json({ success: true, students });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to fetch students' });
+  }
+});
+
+/* ---------- Delete Student ---------- */
+router.delete('/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await deleteStudent(id);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Student deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting student:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to delete student' });
   }
 });
 

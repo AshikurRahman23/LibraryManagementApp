@@ -86,7 +86,7 @@ router.post('/borrow-request', async (req, res) => {
 // Make a payment for a loan penalty
 router.post('/payments', async (req, res) => {
   try {
-    const { loan_id, amount, payment_method } = req.body;
+    const { loan_id, amount, payment_method, reference } = req.body;
 
     if (!loan_id || !amount || !payment_method) {
       return res.status(400).json({
@@ -103,7 +103,8 @@ router.post('/payments', async (req, res) => {
       req.user.id,
       amount,
       payment_method,
-      transactionId
+      transactionId,
+      reference || null
     );
 
     res.json({

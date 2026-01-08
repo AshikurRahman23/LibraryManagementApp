@@ -175,6 +175,8 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/superadmin/admins', child: Text('Manage Admins')),
+              PopupMenuItem(value: '/superadmin/payments', child: Text('Payments')),
             ],
           ),
           IconButton(

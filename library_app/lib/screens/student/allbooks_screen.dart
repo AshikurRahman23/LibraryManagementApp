@@ -5,6 +5,7 @@ import '../../utils/js_safe.dart';
 import 'mybooks_screen.dart';
 import 'dashboard_screen.dart';
 import '../auth/login_screen.dart';
+import 'payment_history_screen.dart';
 
 class StudentAllBooksScreen extends StatefulWidget {
   final String searchQuery;
@@ -144,6 +145,11 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
           context,
           MaterialPageRoute(builder: (_) => StudentMyBooksScreen()),
         );
+        case '/student/payments':
+           Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentPaymentHistoryScreen()),
+        );
         break;
       case '/auth/logout':
         await apiService.logout();
@@ -218,6 +224,8 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
               PopupMenuItem(value: '/student/books', child: Text('All Books')),
               PopupMenuItem(
                   value: '/student/mybooks', child: Text('My Books')),
+              PopupMenuItem(
+                  value: '/student/payments', child: Text('Payments')),
             ],
           ),
           IconButton(

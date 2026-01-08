@@ -152,6 +152,9 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
           MaterialPageRoute(builder: (_) => const AdminManagementScreen()),
         );
         break;
+      case '/superadmin/payments':
+        Navigator.pushReplacementNamed(context, '/superadmin/payments');
+        break;
       case '/auth/logout':
         Navigator.pushReplacement(
           context,
@@ -207,6 +210,10 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
               PopupMenuItem(
                 value: '/superadmin/admins',
                 child: Text('Manage Admins'),
+              ),
+              PopupMenuItem(
+                value: '/superadmin/payments',
+                child: Text('Payments'),
               ),
             ],
           ),

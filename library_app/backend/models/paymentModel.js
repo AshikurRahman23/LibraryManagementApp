@@ -10,19 +10,39 @@ export const initPaymentsTable = async () => {
             amount INTEGER NOT NULL,
             payment_method VARCHAR(50) NOT NULL,
             transaction_id VARCHAR(100),
+            reference VARCHAR(100),
             created_at TIMESTAMP DEFAULT NOW()
         )
+    `);
+    
+    // Add reference column if it doesn't exist (for existing tables)
+    await pool.query(`
+        DO $$ 
+        BEGIN 
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payments' AND column_name='reference') THEN
+                ALTER TABLE payments ADD COLUMN reference VARCHAR(100);
+            END IF;
+        END $$;
     `);
 };
 
 // Create a new payment
-export const createPayment = async (loanId, userId, amount, paymentMethod, transactionId) => {
+export const createPayment = async (loanId, userId, amount, paymentMethod, transactionId, reference = null) => {
     const res = await pool.query(
-        `INSERT INTO payments (loan_id, user_id, amount, payment_method, transaction_id)
-         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [loanId, userId, amount, paymentMethod, transactionId]
+        `INSERT INTO payments (loan_id, user_id, amount, payment_method, transaction_id, reference)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [loanId, userId, amount, paymentMethod, transactionId, reference]
     );
     return res.rows[0];
+};
+
+// Get total paid amount for a specific loan
+export const getTotalPaidForLoan = async (loanId) => {
+    const res = await pool.query(
+        `SELECT COALESCE(SUM(amount), 0) as total_paid FROM payments WHERE loan_id = $1`,
+        [loanId]
+    );
+    return parseInt(res.rows[0].total_paid) || 0;
 };
 
 // Get payments for a specific user (student)
@@ -49,7 +69,8 @@ export const getAllPayments = async () => {
                 u.email as student_email,
                 u.student_id,
                 b.title as book_title,
-                l.return_date
+                l.return_date,
+                p.reference
          FROM payments p
          JOIN users u ON p.user_id = u.id
          LEFT JOIN loans l ON p.loan_id = l.id
@@ -68,7 +89,8 @@ export const searchPayments = async (search) => {
                 u.email as student_email,
                 u.student_id,
                 b.title as book_title,
-                l.return_date
+                l.return_date,
+                p.reference
          FROM payments p
          JOIN users u ON p.user_id = u.id
          LEFT JOIN loans l ON p.loan_id = l.id
@@ -78,6 +100,7 @@ export const searchPayments = async (search) => {
             OR u.student_id ILIKE $1 
             OR b.title ILIKE $1
             OR p.payment_method ILIKE $1
+            OR p.reference ILIKE $1
          ORDER BY p.created_at DESC`,
         [searchTerm]
     );

@@ -10,7 +10,11 @@ import 'screens/admin/SuggestedBooksScreen.dart';
 import 'screens/admin/payment_history_screen.dart' as admin_payment;
 import 'screens/super_admin/dashboard_screen.dart' as super_admin;
 import 'screens/super_admin/admin_management_screen.dart';
+import 'screens/super_admin/payment_history_screen.dart' as superadmin_payment;
 import 'screens/student/payment_history_screen.dart' as student_payment;
+import 'screens/student/dashboard_screen.dart' as student_dash;
+import 'screens/student/allbooks_screen.dart';
+import 'screens/student/mybooks_screen.dart';
 import 'api/api_service.dart';
 
 void main() {
@@ -39,6 +43,7 @@ class LibraryApp extends StatelessWidget {
 
       // **Remove const for screens with state/controllers**
       routes: {
+        // Admin routes
         '/admin/dashboard': (_) => AdminDashboardScreen(),
         '/admin/books': (_) => AdminBooksScreen(),
         '/admin/students': (_) => AdminStudentsScreen(),
@@ -46,9 +51,16 @@ class LibraryApp extends StatelessWidget {
         '/admin/requests': (_) => AdminRequestsScreen(),
         '/admin/suggested-books': (_) => const SuggestedBooksScreen(),
         '/admin/payments': (_) => const admin_payment.AdminPaymentHistoryScreen(),
+        // Super admin routes
         '/superadmin/dashboard': (_) => const super_admin.SuperAdminDashboardScreen(),
         '/superadmin/admins': (_) => const AdminManagementScreen(),
+        '/superadmin/payments': (_) => const superadmin_payment.SuperAdminPaymentHistoryScreen(),
+        // Student routes
+        '/student/dashboard': (_) => const student_dash.StudentDashboardScreen(),
+        '/student/books': (_) => const StudentAllBooksScreen(),
+        '/student/mybooks': (_) => const StudentMyBooksScreen(),
         '/student/payments': (_) => const student_payment.StudentPaymentHistoryScreen(),
+        // Auth routes
         '/login': (_) => LoginScreen(),
       },
     );

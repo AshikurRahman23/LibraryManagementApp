@@ -145,6 +145,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       case '/admin/suggested-books':
         Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         break;
+      case '/admin/payments':
+        Navigator.pushReplacementNamed(context, '/admin/payments');
+        break;
       case '/auth/logout':
         Navigator.pushReplacement(
           context,

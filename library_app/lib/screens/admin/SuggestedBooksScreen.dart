@@ -162,6 +162,9 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
           Navigator.pushReplacementNamed(context, '/admin/suggested-books');
         }
         break;
+        case '/admin/payments':
+        Navigator.pushReplacementNamed(context, '/admin/payments');
+        break;
       case '/auth/logout':
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginScreen()));
         break;
@@ -198,6 +201,7 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
             ],
           ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchSuggested, tooltip: 'Refresh'),

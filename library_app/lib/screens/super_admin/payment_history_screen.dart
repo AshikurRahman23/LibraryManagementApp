@@ -4,14 +4,14 @@ import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
 import '../auth/login_screen.dart';
 
-class AdminPaymentHistoryScreen extends StatefulWidget {
-  const AdminPaymentHistoryScreen({super.key});
+class SuperAdminPaymentHistoryScreen extends StatefulWidget {
+  const SuperAdminPaymentHistoryScreen({super.key});
 
   @override
-  State<AdminPaymentHistoryScreen> createState() => _AdminPaymentHistoryScreenState();
+  State<SuperAdminPaymentHistoryScreen> createState() => _SuperAdminPaymentHistoryScreenState();
 }
 
-class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
+class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistoryScreen> {
   final ApiService api = ApiService();
   final TextEditingController searchController = TextEditingController();
 
@@ -82,7 +82,7 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
         Navigator.pushReplacementNamed(context, '/admin/students');
         break;
       case '/admin/dashboard':
-        Navigator.pushReplacementNamed(context, '/admin/dashboard');
+        Navigator.pushReplacementNamed(context, '/superadmin/dashboard');
         break;
       case '/admin/loans':
         Navigator.pushReplacementNamed(context, '/admin/loans');
@@ -91,7 +91,10 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
         Navigator.pushReplacementNamed(context, '/admin/requests');
         break;
       case '/admin/payments':
-        Navigator.pushReplacementNamed(context, '/admin/payments');
+        Navigator.pushReplacementNamed(context, '/superadmin/payments');
+        break;
+      case '/superadmin/admins':
+        Navigator.pushReplacementNamed(context, '/superadmin/admins');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -156,6 +159,7 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
+              PopupMenuItem(value: '/superadmin/admins', child: Text('Admins')),
             ],
           ),
           IconButton(
