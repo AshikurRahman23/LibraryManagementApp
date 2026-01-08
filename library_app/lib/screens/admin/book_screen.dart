@@ -297,20 +297,22 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                                       book['title'],
                                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                     ),
-                                    subtitle: Text.rich(
-                                      TextSpan(
-                                        children: [
-                                          TextSpan(
-                                            text: book['author'],
-                                            style: const TextStyle(color: Colors.black, fontSize: 13),
-                                          ),
-                                          const TextSpan(text: ' • ', style: TextStyle(color: Colors.black54, fontSize: 13)),
-                                          TextSpan(
-                                            text: book['genre'],
-                                            style: const TextStyle(color: Colors.black54, fontSize: 13),
-                                          ),
-                                        ],
-                                      ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '✍️ Author: ${book['author'] ?? '-'}',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          '🏷️ Genre: ${book['genre'] ?? '-'}',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                        ),
+                                        Text(
+                                          '📦 Total: ${book['total_copies'] ?? 0} | Available: ${book['available_copies'] ?? 0}',
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.blueGrey),
+                                        ),
+                                      ],
                                     ),
                                     trailing: Wrap(
                                       spacing: 4,
