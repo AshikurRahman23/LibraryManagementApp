@@ -11,6 +11,7 @@ import {
   updateAdminPassword,
   deleteAdmin
 } from '../models/adminModel.js';
+import { deleteStudent } from '../models/userModel.js';
 
 const router = express.Router();
 
@@ -184,6 +185,30 @@ router.delete('/admins/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting admin:', err);
     res.status(500).json({ success: false, message: err.message || 'Failed to delete admin' });
+  }
+});
+
+/* ---------- Delete Student ---------- */
+router.delete('/students/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await deleteStudent(id);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Student deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting student:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to delete student' });
   }
 });
 

@@ -122,6 +122,13 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -131,7 +138,6 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(

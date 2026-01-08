@@ -183,6 +183,13 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -201,7 +208,6 @@ class _SuperAdminDashboardScreenState extends State<SuperAdminDashboardScreen> {
                 value: '/superadmin/admins',
                 child: Text('Manage Admins'),
               ),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
         ],

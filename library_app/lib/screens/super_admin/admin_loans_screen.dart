@@ -16,12 +16,48 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
   final TextEditingController searchController = TextEditingController();
 
   List<Map<String, dynamic>> loans = [];
+  List<Map<String, dynamic>> filteredLoans = [];
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
+    searchController.addListener(_onSearchChanged);
     fetchLoans();
+  }
+
+  @override
+  void dispose() {
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        filteredLoans = List.from(loans);
+      } else {
+        filteredLoans = loans.where((loan) {
+          return loan['title'].toString().toLowerCase().contains(query) ||
+              loan['author'].toString().toLowerCase().contains(query) ||
+              loan['student_name'].toString().toLowerCase().contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  int calculatePenalty(String? dueDate) {
+    if (dueDate == null) return 0;
+    final due = DateTime.tryParse(dueDate);
+    if (due == null) return 0;
+    final now = DateTime.now();
+    if (now.isBefore(due)) return 0;
+    final daysOverdue = now.difference(due).inDays;
+    if (daysOverdue <= 0) return 0;
+    final periods = ((daysOverdue - 1) ~/ 15) + 1;
+    return periods * 10;
   }
 
   Future<void> fetchLoans([String? search]) async {
@@ -35,15 +71,13 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
         List<Map<String, dynamic>> allLoans =
             sanitizeListOfMaps(List.from(data['loans'] ?? []));
 
-        if (search != null && search.isNotEmpty) {
-          final q = search.toLowerCase();
-          allLoans = allLoans.where((loan) {
-            return loan['title'].toString().toLowerCase().contains(q) ||
-                loan['author'].toString().toLowerCase().contains(q);
-          }).toList();
+        if (mounted) {
+          setState(() {
+            loans = allLoans;
+            filteredLoans = List.from(allLoans);
+          });
+          _onSearchChanged();
         }
-
-        if (mounted) setState(() => loans = allLoans);
       }
     } catch (e) {
       debugPrint('Fetch loans error: $e');
@@ -125,6 +159,13 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -134,7 +175,6 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(
@@ -151,29 +191,21 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: const InputDecoration(
-                          hintText: 'Search by book title or author name',
-                          prefixIcon: Icon(Icons.search),
-                        ),
-                      ),
+                TextField(
+                  controller: searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search by book title, author, or student name',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => fetchLoans(searchController.text),
-                      child: const Text('Search'),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: loading
                       ? const Center(child: CircularProgressIndicator())
-                      : loans.isEmpty
+                      : filteredLoans.isEmpty
                           ? const Center(
                               child: Text(
                                 'No loan records available',
@@ -182,10 +214,11 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                               ),
                             )
                           : ListView.builder(
-                              itemCount: loans.length,
+                              itemCount: filteredLoans.length,
                               itemBuilder: (_, index) {
-                                final loan = loans[index];
+                                final loan = filteredLoans[index];
                                 final isIssued = loan['status'] == 'issued';
+                                final penalty = isIssued ? calculatePenalty(loan['return_date']?.toString()) : 0;
 
                                 return Card(
                                   elevation: 2,
@@ -205,6 +238,10 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                                         Text(
                                           'Borrowed by: ${safeString(loan['student_name'])} (ID: ${safeString(loan['student_id'])})',
                                         ),
+                                        if (loan['return_date'] != null)
+                                          Text(
+                                            '📅 Due: ${safeString(loan['return_date']).split('T')[0]}',
+                                          ),
                                         Text(
                                           'Status: ${safeString(loan['status']).toUpperCase()}',
                                           style: TextStyle(
@@ -213,6 +250,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                                                 : Colors.green,
                                           ),
                                         ),
+                                        if (isIssued && penalty > 0)
+                                          Text(
+                                            '💰 Penalty: ৳$penalty',
+                                            style: const TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                     trailing: isIssued

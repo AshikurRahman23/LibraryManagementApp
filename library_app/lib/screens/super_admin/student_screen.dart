@@ -17,18 +17,36 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   final ApiService api = ApiService();
   final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> filteredStudents = [];
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
+    searchController.addListener(_onSearchChanged);
     fetchStudents();
   }
 
   @override
   void dispose() {
+    searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        filteredStudents = List.from(students);
+      } else {
+        filteredStudents = students.where((s) {
+          return s['name'].toString().toLowerCase().contains(query) ||
+              s['email'].toString().toLowerCase().contains(query) ||
+              s['student_id'].toString().toLowerCase().contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> fetchStudents([String? search]) async {
@@ -41,7 +59,9 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
         if (mounted) {
           setState(() {
             students = sanitizeListOfMaps(List.from(data['students'] ?? []));
+            filteredStudents = List.from(students);
           });
+          _onSearchChanged();
         }
       }
     } catch (e) {
@@ -78,6 +98,75 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
     }
   }
 
+  void _showDeleteDialog(Map<String, dynamic> student) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Student'),
+        content: Text(
+          'Are you sure you want to delete "${student['name']}"?\n\n'
+          'Email: ${student['email']}\n'
+          'Student ID: ${student['student_id']}\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _deleteStudent(student);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteStudent(Map<String, dynamic> student) async {
+    try {
+      setState(() => loading = true);
+      final result = await api.deleteStudent(id: student['id']);
+      
+      if (!mounted) return;
+      
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Student "${student['name']}" deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        fetchStudents();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Failed to delete student'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,6 +181,13 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -103,7 +199,6 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(
@@ -127,35 +222,23 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Search bar
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: searchController,
-                              decoration: const InputDecoration(
-                                hintText: 'Search by name, email, or student ID',
-                                prefixIcon: Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(8)),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12),
-                              ),
-                              onSubmitted: (_) => fetchStudents(searchController.text),
-                            ),
+                      TextField(
+                        controller: searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name, email, or student ID',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
                           ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () => fetchStudents(searchController.text),
-                            child: const Text('Search'),
-                          ),
-                        ],
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
                       // Students list
                       loading
                           ? const Center(child: CircularProgressIndicator())
-                          : students.isEmpty
+                          : filteredStudents.isEmpty
                               ? Padding(
                                   padding: const EdgeInsets.only(top: 40),
                                   child: Center(
@@ -167,7 +250,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                   ),
                                 )
                               : Column(
-                                  children: students.map((student) {
+                                  children: filteredStudents.map((student) {
                                     final createdAt = safeParseDate(student['created_at']);
                                     return Card(
                                       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -233,6 +316,21 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                                   ),
                                                 ),
                                               ],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            // Delete button
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: ElevatedButton.icon(
+                                                onPressed: () => _showDeleteDialog(student),
+                                                icon: const Icon(Icons.delete, size: 18),
+                                                label: const Text('Delete'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),

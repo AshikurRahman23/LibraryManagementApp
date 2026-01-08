@@ -374,4 +374,51 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  /// Delete student (Super Admin only)
+  Future<Map<String, dynamic>> deleteStudent({required int id}) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/superadmin/students/$id'),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // ------------------- Payments -------------------
+  
+  /// Make a payment for a loan penalty (Student)
+  Future<Map<String, dynamic>> makePayment({
+    required int loanId,
+    required int amount,
+    required String paymentMethod,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/student/payments'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'loan_id': loanId,
+        'amount': amount,
+        'payment_method': paymentMethod,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Get payment history for current student
+  Future<Map<String, dynamic>> getPaymentHistory() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/student/payments'),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Get all payments (Admin)
+  Future<Map<String, dynamic>> getAllPayments() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/payments'),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
 }

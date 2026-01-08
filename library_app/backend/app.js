@@ -8,9 +8,13 @@ import superAdminRoutes from './routes/superadmin.js';
 import { authenticate, authorizeRole } from './middlewares/authMiddleware.js';
 import pool from './models/db.js';
 import libraryRoutes from './routes/library.js';
+import { initPaymentsTable } from './models/paymentModel.js';
 
 dotenv.config();
 const app = express();
+
+// Initialize payments table
+initPaymentsTable().catch(err => console.error('Failed to init payments table:', err));
 
 /* ---------- Middleware ---------- */
 app.use(bodyParser.urlencoded({ extended: true }));

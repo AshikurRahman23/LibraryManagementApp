@@ -6,6 +6,7 @@ import {
 import {
   getStudentLoans, getStudentSearchLoans, countCurrentlyBorrowedBooks
 } from '../models/loanModel.js';
+import { createPayment, getPaymentsByUserId } from '../models/paymentModel.js';
 import { authenticate, authorizeRole } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -78,6 +79,63 @@ router.post('/borrow-request', async (req, res) => {
     success: true,
     message: 'Borrow request sent'
   });
+});
+
+/* ---------- Payment Routes ---------- */
+
+// Make a payment for a loan penalty
+router.post('/payments', async (req, res) => {
+  try {
+    const { loan_id, amount, payment_method } = req.body;
+
+    if (!loan_id || !amount || !payment_method) {
+      return res.status(400).json({
+        success: false,
+        message: 'Loan ID, amount, and payment method are required'
+      });
+    }
+
+    // Generate a dummy transaction ID
+    const transactionId = `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    const payment = await createPayment(
+      loan_id,
+      req.user.id,
+      amount,
+      payment_method,
+      transactionId
+    );
+
+    res.json({
+      success: true,
+      message: 'Payment successful',
+      payment,
+      transactionId
+    });
+  } catch (err) {
+    console.error('Payment error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Payment failed'
+    });
+  }
+});
+
+// Get student's payment history
+router.get('/payments', async (req, res) => {
+  try {
+    const payments = await getPaymentsByUserId(req.user.id);
+    res.json({
+      success: true,
+      payments
+    });
+  } catch (err) {
+    console.error('Error fetching payments:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch payment history'
+    });
+  }
 });
 
 export default router;

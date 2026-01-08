@@ -44,6 +44,7 @@ export const getAllLoans = async () => {
             l.status,
             l.issued_at,
             l.returned_at,
+            l.return_date,
             b.title,
             b.author,
             b.genre,

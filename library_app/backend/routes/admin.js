@@ -7,6 +7,7 @@ import { getAllStudents, getSearchStudents } from '../models/userModel.js';
 import {
   getAllLoans, getSearchLoans, issueBook, returnBook, getDashboardStats
 } from '../models/loanModel.js';
+import { getAllPayments, searchPayments } from '../models/paymentModel.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
 import { adminOrHigher } from '../middlewares/rbacMiddleware.js';
 
@@ -199,6 +200,18 @@ router.post('/requests/:id/reject', async (req, res) => {
     res.json({ success: true, message: 'Request rejected' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to reject request' });
+  }
+});
+
+/* ---------- Payments ---------- */
+router.get('/payments', async (req, res) => {
+  try {
+    const search = req.query.search || '';
+    const payments = search ? await searchPayments(search) : await getAllPayments();
+    res.json({ success: true, payments });
+  } catch (err) {
+    console.error('Error fetching payments:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch payments' });
   }
 });
 

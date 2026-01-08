@@ -406,6 +406,13 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
             tooltip: 'Dashboard',
             onPressed: () => _navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              _navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: _navigateTo,
@@ -416,7 +423,6 @@ class _AdminManagementScreenState extends State<AdminManagementScreen> {
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/superadmin/admins', child: Text('Manage Admins')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(

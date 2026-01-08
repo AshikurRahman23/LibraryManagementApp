@@ -176,6 +176,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -186,11 +193,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(
-                value: '/admin/suggested-books',
-                child: Text('Suggested'),
-              ),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
+              PopupMenuItem(value: '/admin/suggested-books',child: Text('Suggested'),),
+              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
             ],
           ),
         ],

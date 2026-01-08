@@ -29,13 +29,45 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
   final TextEditingController editGenreController = TextEditingController();
 
   List<Map<String, dynamic>> books = [];
+  List<Map<String, dynamic>> filteredBooks = [];
   int? editingBookId;
   bool loading = false;
 
   @override
   void initState() {
     super.initState();
+    searchController.addListener(_onSearchChanged);
     fetchBooks();
+  }
+
+  @override
+  void dispose() {
+    searchController.removeListener(_onSearchChanged);
+    searchController.dispose();
+    addTitleController.dispose();
+    addAuthorController.dispose();
+    addTotalController.dispose();
+    addGenreController.dispose();
+    editTitleController.dispose();
+    editAuthorController.dispose();
+    editTotalController.dispose();
+    editGenreController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        filteredBooks = List.from(books);
+      } else {
+        filteredBooks = books.where((b) {
+          return b['title'].toString().toLowerCase().contains(query) ||
+              b['author'].toString().toLowerCase().contains(query) ||
+              b['genre'].toString().toLowerCase().contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> fetchBooks([String? search]) async {
@@ -48,16 +80,13 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
         List<Map<String, dynamic>> allBooks =
             sanitizeListOfMaps(List.from(data['books'] ?? []));
 
-        if (search != null && search.isNotEmpty) {
-          final q = search.toLowerCase();
-          allBooks = allBooks.where((b) {
-            return b['title'].toString().toLowerCase().contains(q) ||
-                b['author'].toString().toLowerCase().contains(q) ||
-                b['genre'].toString().toLowerCase().contains(q);
-          }).toList();
+        if (mounted) {
+          setState(() {
+            books = allBooks;
+            filteredBooks = List.from(allBooks);
+          });
+          _onSearchChanged();
         }
-
-        if (mounted) setState(() => books = allBooks);
       }
     } catch (e) {
       debugPrint('Fetch books error: $e');
@@ -210,6 +239,13 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
               icon: const Icon(Icons.home),
               tooltip: 'Dashboard',
               onPressed: () => navigateTo('/admin/dashboard')),
+           IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -219,7 +255,6 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
               PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(
@@ -262,30 +297,26 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                       ),
                       const SizedBox(height: 16),
                       // Search Bar
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: searchController,
-                              decoration: const InputDecoration(
-                                  hintText: 'Search by title, author, or genre'),
-                            ),
+                      TextField(
+                        controller: searchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search by title, author, or genre',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(8)),
                           ),
-                          IconButton(
-                              icon: const Icon(Icons.search),
-                              onPressed: () => fetchBooks(searchController.text)),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       // Books List
                       loading
                           ? const CircularProgressIndicator()
                           : ListView.builder(
-                              itemCount: books.length,
+                              itemCount: filteredBooks.length,
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemBuilder: (_, index) {
-                                final book = books[index];
+                                final book = filteredBooks[index];
                                 return Card(
                                   elevation: 2,
                                   margin: const EdgeInsets.symmetric(vertical: 6),

@@ -120,6 +120,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               navigateTo('/student/dashboard');
             },
           ),
+          IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            }, 
+            icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -129,7 +136,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             itemBuilder: (BuildContext context) => const [
               PopupMenuItem(value: '/student/books', child: Text('All Books')),
               PopupMenuItem(value: '/student/mybooks', child: Text('My Books')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
         ],

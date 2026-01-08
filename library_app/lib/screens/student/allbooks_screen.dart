@@ -20,6 +20,7 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   List<Map<String, dynamic>> books = [];
+  List<Map<String, dynamic>> filteredBooks = [];
   int borrowed = 0;
   bool isLoading = true;
 
@@ -27,13 +28,30 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
   void initState() {
     super.initState();
     searchController.text = widget.searchQuery;
+    searchController.addListener(_onSearchChanged);
     fetchBooks(search: widget.searchQuery);
   }
 
   @override
   void dispose() {
+    searchController.removeListener(_onSearchChanged);
     searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        filteredBooks = List.from(books);
+      } else {
+        filteredBooks = books.where((b) {
+          return b['title'].toString().toLowerCase().contains(query) ||
+              b['author'].toString().toLowerCase().contains(query) ||
+              b['genre'].toString().toLowerCase().contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> fetchBooks({String search = ''}) async {
@@ -46,9 +64,11 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
 
       setState(() {
         books = sanitizeListOfMaps(List.from(data['books'] ?? []));
+        filteredBooks = List.from(books);
         borrowed = data['borrowed'] ?? 0;
         isLoading = false;
       });
+      _onSearchChanged();
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
@@ -182,6 +202,13 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/student/dashboard'),
           ),
+          IconButton(
+            tooltip: 'logout',
+            onPressed: () {
+              if (!mounted) return;
+              navigateTo('/auth/logout');
+            },
+             icon: const Icon(Icons.logout)),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -191,7 +218,6 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
               PopupMenuItem(value: '/student/books', child: Text('All Books')),
               PopupMenuItem(
                   value: '/student/mybooks', child: Text('My Books')),
-              PopupMenuItem(value: '/auth/logout', child: Text('Logout')),
             ],
           ),
           IconButton(
@@ -210,40 +236,22 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Search bar
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search books by title, author...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onSubmitted: (_) =>
-                            fetchBooks(search: searchController.text),
-                      ),
+                TextField(
+                  controller: searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search books by title, author...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () =>
-                          fetchBooks(search: searchController.text),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text('🔍 Search'),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 16),
 
                 // Books list
                 isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : books.isEmpty
+                    : filteredBooks.isEmpty
                         ? const Center(
                             child: Text(
                               'No books in the library yet.',
@@ -251,11 +259,11 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                             ),
                           )
                         : ListView.builder(
-                            itemCount: books.length,
+                            itemCount: filteredBooks.length,
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemBuilder: (context, index) {
-                              final book = books[index];
+                              final book = filteredBooks[index];
                               return Card(
                                 elevation: 3,
                                 margin:

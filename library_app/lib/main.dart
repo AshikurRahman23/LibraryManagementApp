@@ -7,8 +7,10 @@ import 'screens/admin/admin_loans_screen.dart';
 import 'screens/admin/student_screen.dart';
 import 'screens/admin/request_screen.dart';
 import 'screens/admin/SuggestedBooksScreen.dart';
+import 'screens/admin/payment_history_screen.dart' as admin_payment;
 import 'screens/super_admin/dashboard_screen.dart' as super_admin;
 import 'screens/super_admin/admin_management_screen.dart';
+import 'screens/student/payment_history_screen.dart' as student_payment;
 import 'api/api_service.dart';
 
 void main() {
@@ -43,8 +45,10 @@ class LibraryApp extends StatelessWidget {
         '/admin/loans': (_) => const AdminLoansScreen(),
         '/admin/requests': (_) => AdminRequestsScreen(),
         '/admin/suggested-books': (_) => const SuggestedBooksScreen(),
+        '/admin/payments': (_) => const admin_payment.AdminPaymentHistoryScreen(),
         '/superadmin/dashboard': (_) => const super_admin.SuperAdminDashboardScreen(),
         '/superadmin/admins': (_) => const AdminManagementScreen(),
+        '/student/payments': (_) => const student_payment.StudentPaymentHistoryScreen(),
         '/login': (_) => LoginScreen(),
       },
     );

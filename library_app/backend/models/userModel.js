@@ -29,3 +29,24 @@ export async function getSearchStudents(search) {
     );
     return res.rows;
 }
+
+export const deleteStudent = async (id) => {
+    // First check if student exists and has student role
+    const checkRes = await pool.query(
+        'SELECT * FROM users WHERE id=$1 AND role=$2',
+        [id, 'student']
+    );
+    if (checkRes.rows.length === 0) {
+        return null;
+    }
+    
+    // Delete associated loans first
+    await pool.query('DELETE FROM loans WHERE user_id=$1', [id]);
+    
+    // Delete the student
+    const res = await pool.query(
+        'DELETE FROM users WHERE id=$1 AND role=$2 RETURNING *',
+        [id, 'student']
+    );
+    return res.rows[0];
+};
