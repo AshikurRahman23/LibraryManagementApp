@@ -147,7 +147,7 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
       return ElevatedButton(
         onPressed: () => borrowBook(book['id']),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue.shade700,
+          backgroundColor: const Color.fromARGB(255, 3, 242, 55),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -161,7 +161,7 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
 
     return const Text(
       'Unavailable',
-      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+      style: TextStyle(color: Color.fromARGB(255, 216, 7, 7), fontWeight: FontWeight.w500),
     );
   }
 

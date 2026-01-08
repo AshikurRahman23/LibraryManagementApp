@@ -3,6 +3,7 @@ import '../../../api/api_service.dart';
 import 'signup_screen.dart';
 import '../admin/dashboard_screen.dart';
 import '../student/dashboard_screen.dart';
+import '../super_admin/dashboard_screen.dart' as super_admin;
 import '../../utils/js_safe.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,7 +38,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response['success'] == true) {
         final role = response['user']['role'];
-        if (role == 'admin') {
+        if (role == 'super_admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const super_admin.SuperAdminDashboardScreen()),
+          );
+        } else if (role == 'admin') {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),

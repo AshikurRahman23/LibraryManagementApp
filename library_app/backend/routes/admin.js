@@ -7,12 +7,13 @@ import { getAllStudents, getSearchStudents } from '../models/userModel.js';
 import {
   getAllLoans, getSearchLoans, issueBook, returnBook, getDashboardStats
 } from '../models/loanModel.js';
-import { authenticate, authorizeRole } from '../middlewares/authMiddleware.js';
+import { authenticate } from '../middlewares/authMiddleware.js';
+import { adminOrHigher } from '../middlewares/rbacMiddleware.js';
 
 const router = express.Router();
 
-// Apply auth middleware for admin
-router.use(authenticate, authorizeRole('admin'));
+// Apply auth middleware for admin and super_admin
+router.use(authenticate, adminOrHigher);
 
 /* ---------- Dashboard ---------- */
 router.get('/dashboard', async (req, res) => {

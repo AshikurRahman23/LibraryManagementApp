@@ -125,7 +125,7 @@ class ApiService {
     // Successful HTTP status
     if (response.statusCode >= 200 && response.statusCode < 300) {
       // If body is empty or not JSON, return a generic success map
-      if (response.body == null || response.body.trim().isEmpty) {
+      if (response.body.trim().isEmpty) {
         return {'success': true, 'message': 'Deleted'};
       }
       try {
@@ -288,6 +288,89 @@ class ApiService {
       Uri.parse('$baseUrl/student/borrow-request'),
       headers: await _getHeaders(withAuth: true),
       body: jsonEncode({'bookId': bookId}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // ------------------- Super Admin - Admin Management -------------------
+  
+  /// Get all admins (Super Admin only)
+  Future<Map<String, dynamic>> getAllAdmins({String? search}) async {
+    String url = '$baseUrl/superadmin/admins';
+    if (search != null && search.isNotEmpty) url += '?search=$search';
+    final response = await http.get(
+      Uri.parse(url),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Get admin by ID (Super Admin only)
+  Future<Map<String, dynamic>> getAdminById({required int id}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/superadmin/admins/$id'),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Create new admin (Super Admin only)
+  Future<Map<String, dynamic>> createAdmin({
+    required String name,
+    required String email,
+    required String password,
+    String? mobileNo,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/superadmin/admins/add'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+        'mobile_no': mobileNo,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Update admin details (Super Admin only)
+  Future<Map<String, dynamic>> updateAdmin({
+    required int id,
+    required String name,
+    required String email,
+    String? mobileNo,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/superadmin/admins/$id'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'mobile_no': mobileNo,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Update admin password (Super Admin only)
+  Future<Map<String, dynamic>> updateAdminPassword({
+    required int id,
+    required String password,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/superadmin/admins/$id/password'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({'password': password}),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Delete admin (Super Admin only)
+  Future<Map<String, dynamic>> deleteAdmin({required int id}) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/superadmin/admins/$id'),
+      headers: await _getHeaders(withAuth: true),
     );
     return jsonDecode(response.body);
   }

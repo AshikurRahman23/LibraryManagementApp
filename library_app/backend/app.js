@@ -4,6 +4,7 @@ import bodyParser from 'body-parser';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
+import superAdminRoutes from './routes/superadmin.js';
 import { authenticate, authorizeRole } from './middlewares/authMiddleware.js';
 import pool from './models/db.js';
 import libraryRoutes from './routes/library.js';
@@ -38,6 +39,7 @@ app.use((req, res, next) => {
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/student', studentRoutes);
+app.use('/superadmin', superAdminRoutes);
 app.use('/', libraryRoutes);
 
 // Support DELETE /admin/suggested-books/:id at the app level (protected by admin auth)
