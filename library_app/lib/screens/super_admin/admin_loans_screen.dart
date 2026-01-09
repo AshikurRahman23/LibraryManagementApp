@@ -4,14 +4,14 @@ import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
 import '../../screens/auth/login_screen.dart';
 
-class AdminLoansScreen extends StatefulWidget {
-  const AdminLoansScreen({super.key});
+class SuperAdminLoansScreen extends StatefulWidget {
+  const SuperAdminLoansScreen({super.key});
 
   @override
-  State<AdminLoansScreen> createState() => _AdminLoansScreenState();
+  State<SuperAdminLoansScreen> createState() => _SuperAdminLoansScreenState();
 }
 
-class _AdminLoansScreenState extends State<AdminLoansScreen> {
+class _SuperAdminLoansScreenState extends State<SuperAdminLoansScreen> {
   final ApiService api = ApiService();
   final TextEditingController searchController = TextEditingController();
 
@@ -116,24 +116,24 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
     if (!mounted) return;
 
     switch (route) {
-      case '/admin/books':
-        Navigator.pushReplacementNamed(context, '/admin/books');
+      case '/superadmin/books':
+        Navigator.pushReplacementNamed(context, '/superadmin/books');
         break;
 
-      case '/admin/students':
-        Navigator.pushReplacementNamed(context, '/admin/students');
+      case '/superadmin/students':
+        Navigator.pushReplacementNamed(context, '/superadmin/students');
         break;
 
-      case '/admin/dashboard':
-        Navigator.pushReplacementNamed(context, '/admin/dashboard');
+      case '/superadmin/dashboard':
+        Navigator.pushReplacementNamed(context, '/superadmin/dashboard');
         break;
 
-      case '/admin/requests':
-        Navigator.pushReplacementNamed(context, '/admin/requests');
+      case '/superadmin/requests':
+        Navigator.pushReplacementNamed(context, '/superadmin/requests');
         break;
 
-      case '/admin/suggested-books':
-        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
+      case '/superadmin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/superadmin/suggested-books');
         break;
 
       case '/auth/logout':
@@ -150,14 +150,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📖 Loan Management'),
+        title: const Text('📖 Manage Loans'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.home),
             tooltip: 'Dashboard',
-            onPressed: () => navigateTo('/admin/dashboard'),
+            onPressed: () => navigateTo('/superadmin/dashboard'),
           ),
            IconButton(
             tooltip: 'logout',
@@ -170,12 +170,12 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/superadmin/admins', child: Text('Manage Admins')),
+              PopupMenuItem(value: '/superadmin/books', child: Text('Books')),
+              PopupMenuItem(value: '/superadmin/students', child: Text('Students')),
+              PopupMenuItem(value: '/superadmin/loans', child: Text('Loans')),
+              PopupMenuItem(value: '/superadmin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/superadmin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/superadmin/admins', child: Text('Admins')),
               PopupMenuItem(value: '/superadmin/payments', child: Text('Payments')),
             ],
           ),

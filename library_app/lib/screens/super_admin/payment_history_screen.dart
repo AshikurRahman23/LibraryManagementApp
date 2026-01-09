@@ -75,26 +75,29 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
     if (!mounted) return;
 
     switch (route) {
-      case '/admin/books':
-        Navigator.pushReplacementNamed(context, '/admin/books');
+      case '/superadmin/books':
+        Navigator.pushReplacementNamed(context, '/superadmin/books');
         break;
-      case '/admin/students':
-        Navigator.pushReplacementNamed(context, '/admin/students');
+      case '/superadmin/students':
+        Navigator.pushReplacementNamed(context, '/superadmin/students');
         break;
-      case '/admin/dashboard':
+      case '/superadmin/dashboard':
         Navigator.pushReplacementNamed(context, '/superadmin/dashboard');
         break;
-      case '/admin/loans':
-        Navigator.pushReplacementNamed(context, '/admin/loans');
+      case '/superadmin/loans':
+        Navigator.pushReplacementNamed(context, '/superadmin/loans');
         break;
-      case '/admin/requests':
-        Navigator.pushReplacementNamed(context, '/admin/requests');
+      case '/superadmin/requests':
+        Navigator.pushReplacementNamed(context, '/superadmin/requests');
         break;
-      case '/admin/payments':
+      case '/superadmin/payments':
         Navigator.pushReplacementNamed(context, '/superadmin/payments');
         break;
       case '/superadmin/admins':
         Navigator.pushReplacementNamed(context, '/superadmin/admins');
+        break;
+      case '/superadmin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/superadmin/suggested-books');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -143,7 +146,7 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
           IconButton(
             icon: const Icon(Icons.home),
             tooltip: 'Dashboard',
-            onPressed: () => navigateTo('/admin/dashboard'),
+            onPressed: () => navigateTo('/superadmin/dashboard'),
           ),
           IconButton(
             tooltip: 'logout',
@@ -154,12 +157,13 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
+              PopupMenuItem(value: '/superadmin/books', child: Text('Books')),
+              PopupMenuItem(value: '/superadmin/students', child: Text('Students')),
+              PopupMenuItem(value: '/superadmin/loans', child: Text('Loans')),
+              PopupMenuItem(value: '/superadmin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/superadmin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/superadmin/admins', child: Text('Admins')),
+              PopupMenuItem(value: '/superadmin/payments', child: Text('Payments')),
             ],
           ),
           IconButton(

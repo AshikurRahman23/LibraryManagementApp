@@ -10,8 +10,13 @@ import 'screens/admin/request_screen.dart';
 import 'screens/admin/SuggestedBooksScreen.dart';
 import 'screens/admin/payment_history_screen.dart' as admin_payment;
 import 'screens/super_admin/dashboard_screen.dart' as super_admin;
-import 'screens/super_admin/admin_management_screen.dart';
+import 'screens/super_admin/admin_management_screen.dart' as super_admin_mgmt;
 import 'screens/super_admin/payment_history_screen.dart' as superadmin_payment;
+import 'screens/super_admin/book_screen.dart' as superadmin_book;
+import 'screens/super_admin/student_screen.dart' as superadmin_student;
+import 'screens/super_admin/admin_loans_screen.dart' as superadmin_loans;
+import 'screens/super_admin/request_screen.dart' as superadmin_request;
+import 'screens/super_admin/SuggestedBooksScreen.dart' as superadmin_suggested;
 import 'screens/student/payment_history_screen.dart' as student_payment;
 import 'screens/student/dashboard_screen.dart' as student_dash;
 import 'screens/student/allbooks_screen.dart';
@@ -67,8 +72,13 @@ class LibraryApp extends StatelessWidget {
         '/admin/payments': (_) => const admin_payment.AdminPaymentHistoryScreen(),
         // Super admin routes
         '/superadmin/dashboard': (_) => const super_admin.SuperAdminDashboardScreen(),
-        '/superadmin/admins': (_) => const AdminManagementScreen(),
+        '/superadmin/admins': (_) => const super_admin_mgmt.SuperAdminManagementScreen(),
         '/superadmin/payments': (_) => const superadmin_payment.SuperAdminPaymentHistoryScreen(),
+        '/superadmin/books': (_) => const superadmin_book.SuperAdminBooksScreen(),
+        '/superadmin/students': (_) => const superadmin_student.SuperAdminStudentsScreen(),
+        '/superadmin/loans': (_) => const superadmin_loans.SuperAdminLoansScreen(),
+        '/superadmin/requests': (_) => const superadmin_request.SuperAdminRequestsScreen(),
+        '/superadmin/suggested-books': (_) => const superadmin_suggested.SuperAdminSuggestedBooksScreen(),
         // Student routes
         '/student/dashboard': (_) => const student_dash.StudentDashboardScreen(),
         '/student/books': (_) => const StudentAllBooksScreen(),

@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
-import 'student_screen.dart';
-import 'request_screen.dart';
+import 'student_screen.dart' as super_admin_student;
+import 'request_screen.dart' as super_admin_request;
 import '../../screens/auth/login_screen.dart';
 import '../../utils/js_safe.dart';
 
-class AdminBooksScreen extends StatefulWidget {
-  const AdminBooksScreen({super.key});
+typedef SuperAdminStudentsScreen = super_admin_student.SuperAdminStudentsScreen;
+typedef SuperAdminRequestsScreen = super_admin_request.SuperAdminRequestsScreen;
+
+class SuperAdminBooksScreen extends StatefulWidget {
+  const SuperAdminBooksScreen({super.key});
 
   @override
-  State<AdminBooksScreen> createState() => _AdminBooksScreenState();
+  State<SuperAdminBooksScreen> createState() => _SuperAdminBooksScreenState();
 }
 
-class _AdminBooksScreenState extends State<AdminBooksScreen> {
+class _SuperAdminBooksScreenState extends State<SuperAdminBooksScreen> {
   final ApiService api = ApiService();
 
   final TextEditingController searchController = TextEditingController();
@@ -200,22 +203,28 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
     if (!mounted) return;
 
     switch (route) {
-      case '/admin/dashboard':
+      case '/superadmin/dashboard':
         Navigator.pushReplacementNamed(context, '/superadmin/dashboard');
         break;
-      case '/admin/students':
+      case '/superadmin/students':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => AdminStudentsScreen()));
+            context, MaterialPageRoute(builder: (_) => SuperAdminStudentsScreen()));
         break;
-      case '/admin/loans':
-        Navigator.pushReplacementNamed(context, '/admin/loans');
+      case '/superadmin/loans':
+        Navigator.pushReplacementNamed(context, '/superadmin/loans');
         break;
-      case '/admin/requests':
+      case '/superadmin/requests':
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => AdminRequestsScreen()));
+            context, MaterialPageRoute(builder: (_) => SuperAdminRequestsScreen()));
         break;
-      case '/admin/suggested-books':
-        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
+      case '/superadmin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/superadmin/suggested-books');
+        break;
+      case '/superadmin/admins':
+        Navigator.pushReplacementNamed(context, '/superadmin/admins');
+        break;
+      case '/superadmin/payments':
+        Navigator.pushReplacementNamed(context, '/superadmin/payments');
         break;
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -236,7 +245,7 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
           IconButton(
               icon: const Icon(Icons.home),
               tooltip: 'Dashboard',
-              onPressed: () => navigateTo('/admin/dashboard')),
+              onPressed: () => navigateTo('/superadmin/dashboard')),
                IconButton(
             tooltip: 'logout',
             onPressed: () {
@@ -248,12 +257,12 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/superadmin/admins', child: Text('Manage Admins')),
+              PopupMenuItem(value: '/superadmin/books', child: Text('Books')),
+              PopupMenuItem(value: '/superadmin/students', child: Text('Students')),
+              PopupMenuItem(value: '/superadmin/loans', child: Text('Loans')),
+              PopupMenuItem(value: '/superadmin/requests', child: Text('Requests')),
+              PopupMenuItem(value: '/superadmin/suggested-books', child: Text('Suggested')),
+              PopupMenuItem(value: '/superadmin/admins', child: Text('Admins')),
               PopupMenuItem(value: '/superadmin/payments', child: Text('Payments')),
             ],
           ),
