@@ -63,7 +63,9 @@ class _LibraryAppState extends State<LibraryApp> {
   }
 
   void _onThemeChanged() {
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -123,7 +125,10 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _checkLoginAndNavigate();
+    // Use addPostFrameCallback to ensure the widget tree is fully built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoginAndNavigate();
+    });
   }
 
   Future<void> _checkLoginAndNavigate() async {
@@ -136,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen> {
         route = lastRoute ?? '/admin/dashboard';
       }
 
-      // Navigate after first frame
+      // Navigate only if still mounted
       if (mounted) {
         Navigator.of(context).pushReplacementNamed(route);
       }
