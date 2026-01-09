@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
+import '../../theme/theme_controller.dart';
 import 'book_screen.dart';
 import 'request_screen.dart';
 import 'student_screen.dart';
@@ -30,7 +32,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     fetchStats();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/dashboard');
   }
 
   Future<void> fetchStats() async {
@@ -60,53 +68,73 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     String title,
     String value,
     String subtitle,
+    Color accentColor,
   ) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    double iconSize = 24;
-    double titleSize = 14;
-    double valueSize = 18;
-    double subtitleSize = 12;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    // shrink font sizes on very small screens
-    if (screenWidth < 325) {
-      iconSize = 18;
-      titleSize = 12;
-      valueSize = 14;
-      subtitleSize = 10;
-    } else if (screenWidth < 400) {
-      iconSize = 20;
-      titleSize = 13;
-      valueSize = 16;
-      subtitleSize = 11;
-    }
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accentColor.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            Icon(icon, size: iconSize, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(fontSize: titleSize, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: valueSize,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accentColor.withOpacity(0.15),
+                    accentColor.withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Icon(icon, size: 24, color: accentColor),
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(fontSize: subtitleSize, color: Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -159,33 +187,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final screenWidth = MediaQuery.of(context).size.width;
-    int crossAxisCount;
-    if (screenWidth < 525) {
-      crossAxisCount = 1; // small mobile
-    } else {
-      crossAxisCount = 2; // tablets / medium screens
-    }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: Icon(themeController.themeModeIcon),
+            tooltip: 'Theme: ${themeController.themeModeLabel}',
+            onPressed: () => themeController.cycleThemeMode(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
-           IconButton(
-            tooltip: 'logout',
+          IconButton(
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             },
-             icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -196,67 +225,90 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               PopupMenuItem(value: '/admin/students', child: Text('Students')),
               PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
               PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books',child: Text('Suggested'),),
+              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
               PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
             ],
           ),
         ],
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
+              ),
+            )
           : Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100), // <-- max width
+                constraints: BoxConstraints(
+                  maxWidth: Breakpoints.getMaxContentWidth(context),
+                ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 24),
-                      const Text(
+                      const SizedBox(height: 16),
+                      Text(
                         'Overview',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      GridView.count(
-  crossAxisCount: crossAxisCount,
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  crossAxisSpacing: 12,
-  mainAxisSpacing: 12,
-  childAspectRatio: (() {
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    if (screenHeight < 325) {
-      return 1.2; // very short screens
-    } else if (screenHeight > 900) {
-      return 2.5; // tall screens — normal ratio
-    } else {
-      return 2.0; // medium-height screens — slightly smaller height
-    }
-  })(),
-  children: [
-    buildStatCard(Icons.menu_book, 'Total Books', safeString(stats['totalBooks']), 'Books in library'),
-    buildStatCard(Icons.library_books, 'Total Copies', safeString(stats['totalCopies']), 'All copies'),
-    buildStatCard(Icons.people, 'Total Students', safeString(stats['totalStudents']), 'Registered users'),
-    buildStatCard(Icons.bookmark, 'Books Loaned', safeString(stats['booksLoaned']), 'Currently borrowed'),
-    buildStatCard(Icons.check_circle, 'Books Returned', safeString(stats['booksReturned']), 'Successfully returned'),
-    buildStatCard(Icons.warning_amber, 'Overdue Books', safeString(stats['overdueBooks']), 'Late returns'),
-  ],
-),
-
-                      const SizedBox(height: 24),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cardWidth = constraints.maxWidth < 400
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 12) / 2;
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.menu_book_outlined, 'Total Books', safeString(stats['totalBooks']), 'Books in library', Colors.blue),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.library_books_outlined, 'Total Copies', safeString(stats['totalCopies']), 'All copies', Colors.indigo),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.people_outline, 'Total Students', safeString(stats['totalStudents']), 'Registered users', Colors.teal),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.bookmark_outline, 'Books Loaned', safeString(stats['booksLoaned']), 'Currently borrowed', Colors.orange),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.check_circle_outline, 'Books Returned', safeString(stats['booksReturned']), 'Successfully returned', Colors.green),
+                              ),
+                              SizedBox(
+                                width: cardWidth,
+                                child: buildStatCard(Icons.warning_amber_outlined, 'Overdue Books', safeString(stats['overdueBooks']), 'Late returns', Colors.red),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 32),
                       Center(
                         child: Column(
                           children: [
                             Text(
                               '© ${DateTime.now().year} Online Library Management System',
-                              style: const TextStyle(fontSize: 12),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Contact: library@university.edu | +880-123-456789',
-                              style: TextStyle(fontSize: 12),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),

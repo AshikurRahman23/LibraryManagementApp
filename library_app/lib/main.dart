@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'theme/app_theme.dart';
+import 'theme/theme_controller.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/admin/dashboard_screen.dart';
 import 'screens/admin/book_screen.dart';
@@ -40,23 +42,38 @@ void main() {
   runApp(const LibraryApp());
 }
 
-class LibraryApp extends StatelessWidget {
+class LibraryApp extends StatefulWidget {
   const LibraryApp({super.key});
+
+  @override
+  State<LibraryApp> createState() => _LibraryAppState();
+}
+
+class _LibraryAppState extends State<LibraryApp> {
+  @override
+  void initState() {
+    super.initState();
+    themeController.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    themeController.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Library App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Poppins',
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(fontFamilyFallback: ['Arial', 'sans-serif']),
-          bodyLarge: TextStyle(fontFamilyFallback: ['Arial', 'sans-serif']),
-          bodySmall: TextStyle(fontFamilyFallback: ['Arial', 'sans-serif']),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeController.themeMode,
 
       home: const SplashScreen(), // Temporary loading screen
 
@@ -132,8 +149,24 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.local_library_rounded,
+              size: 64,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(height: 24),
+            CircularProgressIndicator(
+              color: colorScheme.primary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

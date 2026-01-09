@@ -90,39 +90,52 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final cardWidth = width > 600 ? 400.0 : width * 0.9;
+    final cardWidth = width > 600 ? 420.0 : width * 0.92;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: cardWidth),
             child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              elevation: 0,
+              color: colorScheme.surfaceContainerLowest,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 32),
+                    horizontal: 24, vertical: 40),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.person_add_alt_1_rounded,
-                        size: 64,
-                        color: Theme.of(context).primaryColor,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 48,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
+                      const SizedBox(height: 24),
+                      Text(
                         'Create Account',
-                        style: TextStyle(
-                          fontSize: 24,
+                        style: textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sign up to get started',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(height: 32),
@@ -131,79 +144,64 @@ class _SignupScreenState extends State<SignupScreen> {
                       TextFormField(
                         controller: nameController,
                         textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Full Name',
-                          prefixIcon: const Icon(Icons.person_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          prefixIcon: Icon(Icons.person_outline),
                         ),
                         validator: (value) =>
                             value!.isEmpty ? 'Please enter your name' : null,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // Email
                       TextFormField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Email',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          prefixIcon: Icon(Icons.email_outlined),
                         ),
                         validator: (value) =>
                             value!.isEmpty ? 'Please enter email' : null,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // Password
                       TextFormField(
                         controller: passwordController,
                         obscureText: true,
                         textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          prefixIcon: Icon(Icons.lock_outline),
                         ),
                         validator: (value) =>
                             value!.isEmpty ? 'Please enter password' : null,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // Student ID
                       TextFormField(
                         controller: studentIdController,
                         textInputAction: TextInputAction.next,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Student ID',
-                          prefixIcon: const Icon(Icons.badge_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          prefixIcon: Icon(Icons.badge_outlined),
                         ),
                         validator: (value) =>
                             value!.isEmpty ? 'Please enter student ID' : null,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       // Mobile
                       TextFormField(
                         controller: mobileController,
                         keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.done,
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                           labelText: 'Mobile Number',
-                          prefixIcon: const Icon(Icons.phone_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          prefixIcon: Icon(Icons.phone_outlined),
                         ),
                         validator: (value) => value!.isEmpty
                             ? 'Please enter mobile number'
@@ -215,33 +213,21 @@ class _SignupScreenState extends State<SignupScreen> {
                       // Sign Up Button
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
+                        child: FilledButton(
                           onPressed: loading ? null : signup,
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                           child: loading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 24,
                                   height: 24,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    color: colorScheme.onPrimary,
                                   ),
                                 )
-                              : const Text(
-                                  'Sign Up',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                              : const Text('Create Account'),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       TextButton(
                         onPressed: () {
@@ -253,9 +239,22 @@ class _SignupScreenState extends State<SignupScreen> {
                             ),
                           );
                         },
-                        child: const Text(
-                          'Already have an account? Login',
-                          style: TextStyle(fontSize: 14),
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Already have an account? ',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'Sign in',
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

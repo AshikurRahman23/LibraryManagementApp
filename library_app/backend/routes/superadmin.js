@@ -11,7 +11,7 @@ import {
   updateAdminPassword,
   deleteAdmin
 } from '../models/adminModel.js';
-import { deleteStudent } from '../models/userModel.js';
+import { deleteStudent, getUserById, updateUserPassword } from '../models/userModel.js';
 
 const router = express.Router();
 
@@ -209,6 +209,62 @@ router.delete('/students/:id', async (req, res) => {
   } catch (err) {
     console.error('Error deleting student:', err);
     res.status(500).json({ success: false, message: err.message || 'Failed to delete student' });
+  }
+});
+
+/* ---------- Change Own Password ---------- */
+router.put('/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters'
+      });
+    }
+
+    // Get current user
+    const user = await getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await updateUserPassword(req.user.id, hashedPassword);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (err) {
+    console.error('Error changing password:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
+    });
   }
 });
 

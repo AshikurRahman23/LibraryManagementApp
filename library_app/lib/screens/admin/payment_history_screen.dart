@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
 import '../auth/login_screen.dart';
 
@@ -22,8 +23,14 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     fetchPayments();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/payments');
   }
 
   @override
@@ -130,20 +137,22 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('💳 Payment History'),
+        title: const Text('Payment History'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () => navigateTo('/auth/logout'),
             icon: const Icon(Icons.logout),
           ),
@@ -167,35 +176,53 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(
+            maxWidth: Breakpoints.getMaxContentWidth(context),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 TextField(
                   controller: searchController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search by roll/student ID, name, book, or method',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: loading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: colorScheme.primary,
+                          ),
+                        )
                       : filteredPayments.isEmpty
                           ? Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade400),
+                                  Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 64,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'No payment records found.',
-                                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -208,51 +235,98 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
                                 final paidAt = safeParseDate(payment['created_at']);
                                 final roll = safeString(payment['student_id']);
                                 return Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: _getPaymentColor(method).withOpacity(0.2),
-                                      child: Icon(
-                                        _getPaymentIcon(method),
-                                        color: _getPaymentColor(method),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      safeString(payment['book_title']),
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
-                                    ),
-                                    subtitle: Column(
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Show Roll/Student ID from user record
-                                        Text(
-                                          'Roll: $roll',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: _getPaymentColor(method).withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            _getPaymentIcon(method),
+                                            color: _getPaymentColor(method),
+                                          ),
                                         ),
-                                        Text(
-                                          'Name: ${safeString(payment['student_name'])}',
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                safeString(payment['book_title']),
+                                                style: textTheme.titleMedium?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: colorScheme.onSurface,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Roll: $roll',
+                                                style: textTheme.bodyMedium?.copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                  color: colorScheme.onSurface,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Name: ${safeString(payment['student_name'])}',
+                                                style: textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Wrap(
+                                                spacing: 8,
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: colorScheme.secondaryContainer,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      method.toUpperCase(),
+                                                      style: textTheme.labelSmall?.copyWith(
+                                                        color: colorScheme.onSecondaryContainer,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    paidAt != null
+                                                        ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}"
+                                                        : 'N/A',
+                                                    style: textTheme.bodySmall?.copyWith(
+                                                      color: colorScheme.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Transaction: ${safeString(payment['transaction_id'])}',
+                                                style: textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        Text('Method: ${method.toUpperCase()}'),
+                                        const SizedBox(width: 8),
                                         Text(
-                                          'Date: ${paidAt != null ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}" : 'N/A'}',
-                                        ),
-                                        Text(
-                                          'Transaction: ${safeString(payment['transaction_id'])}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                          '৳${payment['amount'] ?? 0}',
+                                          style: textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green.shade600,
+                                          ),
                                         ),
                                       ],
-                                    ),
-                                    trailing: Text(
-                                      '৳${payment['amount'] ?? 0}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors.green,
-                                      ),
                                     ),
                                   ),
                                 );

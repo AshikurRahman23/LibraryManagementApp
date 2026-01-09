@@ -1,4 +1,5 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import db from '../models/db.js';
 import {
   getAllBooks, getFeaturedBooks, getSearchBooks
@@ -7,6 +8,7 @@ import {
   getStudentLoans, getStudentSearchLoans, countCurrentlyBorrowedBooks
 } from '../models/loanModel.js';
 import { createPayment, getPaymentsByUserId } from '../models/paymentModel.js';
+import { updateUserProfile, updateUserPassword, getUserById } from '../models/userModel.js';
 import { authenticate, authorizeRole } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -17,7 +19,7 @@ router.get('/dashboard', async (req, res) => {
   try {
     // Fetch student info from DB using the id from JWT
     const userRes = await db.query(
-      'SELECT id, name, student_id, email FROM users WHERE id = $1',
+      'SELECT id, name, student_id, email, mobile_no FROM users WHERE id = $1',
       [req.user.id]
     );
 
@@ -135,6 +137,97 @@ router.get('/payments', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch payment history'
+    });
+  }
+});
+
+// Update student profile
+router.put('/profile', async (req, res) => {
+  try {
+    const { name, mobile_no } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required'
+      });
+    }
+
+    const updatedUser = await updateUserProfile(req.user.id, name.trim(), mobile_no || null);
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update profile'
+    });
+  }
+});
+
+// Change student password
+router.put('/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters'
+      });
+    }
+
+    // Get current user
+    const user = await getUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await updateUserPassword(req.user.id, hashedPassword);
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
+    });
+  } catch (err) {
+    console.error('Error changing password:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password'
     });
   }
 });

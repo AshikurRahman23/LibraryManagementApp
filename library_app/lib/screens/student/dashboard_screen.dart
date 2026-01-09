@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
+import '../../theme/theme_controller.dart';
 import 'allbooks_screen.dart';
 import 'mybooks_screen.dart';
+import 'edit_profile_screen.dart';
 import '../auth/login_screen.dart';
 import '../../utils/js_safe.dart';
 import 'payment_history_screen.dart';
@@ -21,13 +24,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   String studentName = '';
   String studentId = '';
+  String studentEmail = '';
+  String studentMobile = '';
   List<Map<String, dynamic>> featuredBooks = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     fetchDashboardData();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    await storage.write(key: 'last_route', value: '/student/dashboard');
   }
 
   @override
@@ -45,6 +55,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         setState(() {
           studentName = data['user']['name'] ?? '';
           studentId = data['user']['student_id'] ?? '';
+          studentEmail = data['user']['email'] ?? '';
+          studentMobile = data['user']['mobile_no'] ?? '';
           featuredBooks = List<Map<String, dynamic>>.from(
             data['featuredBooks'] ?? [],
           );
@@ -84,6 +96,20 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           MaterialPageRoute(builder: (_) => const StudentPaymentHistoryScreen()),
         );
         break;
+      case '/student/profile':
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StudentEditProfileScreen(
+              currentName: studentName,
+              currentMobileNo: studentMobile,
+              studentId: studentId,
+              email: studentEmail,
+            ),
+          ),
+        );
+        break;
       case '/auth/logout':
         if (!mounted) return;
         await apiService.logout();
@@ -109,19 +135,23 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final maxWidth = width > 1100 ? 1100.0 : width * 0.95;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Student Dashboard'),
         centerTitle: true,
         automaticallyImplyLeading: false,
-        elevation: 2,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: Icon(themeController.themeModeIcon),
+            tooltip: 'Theme: ${themeController.themeModeLabel}',
+            onPressed: () => themeController.cycleThemeMode(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () {
               if (!mounted) return;
@@ -129,12 +159,13 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             },
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             }, 
-            icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: (String value) {
@@ -150,7 +181,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(
@@ -162,46 +193,70 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
-                      // Welcome Card - Standard Clean UI
+                      // Welcome Card
                       Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        elevation: 0,
+                        color: colorScheme.primaryContainer,
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Row(
                             children: [
-                              const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.blueAccent,
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.person_outline,
+                                  size: 40,
+                                  color: colorScheme.primary,
+                                ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'Hello, $studentName!',
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      'Student ID: $studentId',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey.shade800,
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Hello, $studentName!',
+                                            style: textTheme.headlineSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: colorScheme.onPrimaryContainer,
+                                            ),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.edit_outlined,
+                                            color: colorScheme.primary,
+                                            size: 20,
+                                          ),
+                                          tooltip: 'Edit Profile',
+                                          onPressed: () => navigateTo('/student/profile'),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Student ID: $studentId',
+                                        style: textTheme.labelLarge?.copyWith(
+                                          color: colorScheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -211,20 +266,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ),
 
                       const SizedBox(height: 24),
-
-                      // Intro Text
-                      Text(
-                        'Welcome to the Online Library Management System.\n'
-                        'Discover a wide range of books and effortlessly manage your reading journey.',
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.6,
-                          color: Colors.grey.shade800,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.start,
-                      ),
-
+                
                       const SizedBox(height: 24),
 
                       // Search Bar
@@ -234,32 +276,30 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             child: TextField(
                               controller: searchController,
                               decoration: InputDecoration(
-                                hintText:
-                                    'Search books by title, author, genre...',
+                                hintText: 'Search books by title, author, genre...',
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerHighest,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(28),
+                                  borderSide: BorderSide.none,
+                                ),
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
                                   vertical: 14,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                               onSubmitted: (_) => searchBooks(),
                             ),
                           ),
                           const SizedBox(width: 12),
-                          ElevatedButton(
+                          FilledButton.icon(
                             onPressed: searchBooks,
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('🔍 Search'),
+                            icon: const Icon(Icons.search, size: 20),
+                            label: const Text('Search'),
                           ),
                         ],
                       ),
@@ -267,18 +307,41 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       const SizedBox(height: 32),
 
                       // Featured Books
-                      const Text(
-                        '🌟 Featured Books',
-                        style: TextStyle(
-                          fontSize: 20,
+                      Text(
+                        'Featured Books',
+                        style: textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
-                          height: 1.3,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 12),
 
                       featuredBooks.isEmpty
-                          ? const Text('No featured books available.')
+                          ? Card(
+                              elevation: 0,
+                              color: colorScheme.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.library_books_outlined,
+                                        size: 48,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No featured books available.',
+                                        style: textTheme.bodyLarge?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
                           : SizedBox(
                               height: 400,
                               child: ListView.builder(
@@ -288,28 +351,33 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                 itemBuilder: (context, index) {
                                   final book = featuredBooks[index];
                                   return Card(
-                                    elevation: 2,
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                    elevation: 0,
+                                    color: colorScheme.surfaceContainerLow,
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
                                     child: ListTile(
-                                      leading: const Icon(
-                                        Icons.book_outlined,
-                                        color: Colors.blueAccent,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      leading: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.book_outlined,
+                                          color: colorScheme.onPrimaryContainer,
+                                        ),
                                       ),
                                       title: Text(
                                         safeString(book['title']),
-                                        style: const TextStyle(
+                                        style: textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.w600,
+                                          color: colorScheme.onSurface,
                                         ),
                                       ),
                                       subtitle: Text(
                                         '– ${safeString(book['author']).isEmpty ? '-' : safeString(book['author'])}',
-                                        style: const TextStyle(
-                                          color: Colors.black87,
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          color: colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                     ),
@@ -323,20 +391,18 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       // Footer
                       Center(
                         child: Column(
-                          children: const [
+                          children: [
                             Text(
                               '© Online Library Management System',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               'Contact: library@university.edu | +880-123-456789',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.black54,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import 'book_screen.dart' as super_admin_book;
 import 'request_screen.dart' as super_admin_request;
 import 'student_screen.dart' as super_admin_student;
@@ -30,7 +31,13 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     _fetchSuggested();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/superadmin/suggested-books');
   }
 
   @override
@@ -92,6 +99,8 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
   Future<void> _confirmDelete(int id, String title) async {
     if (!mounted) return;
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -99,7 +108,15 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
         content: Text('Delete suggestion: "$title"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          FilledButton.tonalIcon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete'),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.errorContainer,
+              foregroundColor: colorScheme.onErrorContainer,
+            ),
+          ),
         ],
       ),
     );
@@ -179,20 +196,23 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📚 Suggested Books'),
+        title: const Text('Suggested Books'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/superadmin/dashboard'),
           ),
            IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
@@ -216,42 +236,72 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16),
             child: loading
-                ? const CircularProgressIndicator()
+                ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
                 : error != null
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(error!, style: const TextStyle(color: Colors.red)),
-                          const SizedBox(height: 8),
-                          ElevatedButton(onPressed: _fetchSuggested, child: const Text('Retry'))
-                        ],
+                    ? Card(
+                        elevation: 0,
+                        color: colorScheme.errorContainer,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline, size: 48, color: colorScheme.onErrorContainer),
+                              const SizedBox(height: 12),
+                              Text(
+                                error!,
+                                style: textTheme.bodyLarge?.copyWith(color: colorScheme.onErrorContainer),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              FilledButton.icon(
+                                onPressed: _fetchSuggested,
+                                icon: const Icon(Icons.refresh),
+                                label: const Text('Retry'),
+                              )
+                            ],
+                          ),
+                        ),
                       )
                     : Column(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: searchController,
-                                  decoration: const InputDecoration(hintText: 'Search by title'),
-                                ),
+                          TextField(
+                            controller: searchController,
+                            onChanged: (_) => _applySearch(),
+                            decoration: InputDecoration(
+                              hintText: 'Search by title',
+                              prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(28),
+                                borderSide: BorderSide.none,
                               ),
-                              IconButton(icon: const Icon(Icons.search), onPressed: _applySearch),
-                            ],
+                            ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           filtered.isEmpty
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
-                                    SizedBox(height: 8),
-                                    Text('No suggested books')
-                                  ],
+                              ? Card(
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle_outline, size: 48, color: colorScheme.primary),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          'No suggested books',
+                                          style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 )
                               : Expanded(
                                   child: ListView.separated(
@@ -263,15 +313,42 @@ class _SuperAdminSuggestedBooksScreenState extends State<SuperAdminSuggestedBook
                                       final suggestedAt = _formatDate(s['suggested_at']);
 
                                       return Card(
-                                        elevation: 2,
+                                        elevation: 0,
+                                        color: colorScheme.surfaceContainerLow,
                                         child: ListTile(
-                                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          leading: Container(
+                                            width: 48,
+                                            height: 48,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.secondaryContainer,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(Icons.auto_stories_outlined, color: colorScheme.onSecondaryContainer),
+                                          ),
+                                          title: Text(
+                                            title,
+                                            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                          ),
                                           subtitle: Padding(
                                             padding: const EdgeInsets.only(top: 6.0),
-                                            child: Text('Suggested: $suggestedAt', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.schedule, size: 14, color: colorScheme.onSurfaceVariant),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    'Suggested: $suggestedAt',
+                                                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                           trailing: IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                            icon: Icon(Icons.delete_outline, color: colorScheme.error),
                                             tooltip: 'Delete suggestion',
                                             onPressed: () => _confirmDelete(s['id'] as int, title),
                                           ),

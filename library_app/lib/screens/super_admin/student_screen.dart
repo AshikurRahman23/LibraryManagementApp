@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import 'book_screen.dart' as super_admin_book;
 import 'request_screen.dart' as super_admin_request;
 import '../../screens/auth/login_screen.dart';
@@ -26,8 +27,14 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     fetchStudents();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/superadmin/students');
   }
 
   @override
@@ -110,32 +117,38 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
   void _showDeleteDialog(Map<String, dynamic> student) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Student'),
-        content: Text(
-          'Are you sure you want to delete "${student['name']}"?\n\n'
-          'Email: ${student['email']}\n'
-          'Student ID: ${student['student_id']}\n\n'
-          'This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final textTheme = Theme.of(ctx).textTheme;
+        
+        return AlertDialog(
+          title: Text('Delete Student', style: textTheme.titleLarge),
+          content: Text(
+            'Are you sure you want to delete "${student['name']}"?\n\n'
+            'Email: ${student['email']}\n'
+            'Student ID: ${student['student_id']}\n\n'
+            'This action cannot be undone.',
+            style: textTheme.bodyMedium,
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await _deleteStudent(student);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+            FilledButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteStudent(student);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -178,20 +191,23 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('👨‍🎓 Manage Students'),
+        title: const Text('Manage Students'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/superadmin/dashboard'),
           ),
            IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
@@ -221,7 +237,7 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -235,28 +251,40 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
                       // Search bar
                       TextField(
                         controller: searchController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Search by name, email, or student ID',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerHighest,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderRadius: BorderRadius.circular(28),
+                            borderSide: BorderSide.none,
                           ),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
                       ),
                       const SizedBox(height: 16),
 
                       // Students list
                       loading
-                          ? const Center(child: CircularProgressIndicator())
+                          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
                           : filteredStudents.isEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.only(top: 40),
-                                  child: Center(
-                                    child: Text(
-                                      'No students registered yet.',
-                                      style: TextStyle(
-                                          fontSize: 16, color: Colors.black54),
+                              ? Card(
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(32),
+                                    child: Center(
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.people_outline, size: 48, color: colorScheme.onSurfaceVariant),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'No students registered yet.',
+                                            style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 )
@@ -264,82 +292,107 @@ class _SuperAdminStudentsScreenState extends State<SuperAdminStudentsScreen> {
                                   children: filteredStudents.map((student) {
                                     final createdAt = safeParseDate(student['created_at']);
                                     return Card(
-                                      margin: const EdgeInsets.symmetric(vertical: 6),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
+                                      elevation: 0,
+                                      color: colorScheme.surfaceContainerLow,
+                                      margin: const EdgeInsets.symmetric(vertical: 4),
                                       child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 16, vertical: 12),
+                                        padding: const EdgeInsets.all(16),
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             // Name
                                             Text(
                                               student['name'] ?? 'N/A',
-                                              style: const TextStyle(
-                                                fontSize: 18,
+                                              style: textTheme.titleMedium?.copyWith(
                                                 fontWeight: FontWeight.bold,
-                                                color: Colors.black87,
+                                                color: colorScheme.onSurface,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 8),
                                             // Email and ID
                                             Row(
                                               children: [
                                                 Expanded(
-                                                  child: Text(
-                                                    'Email: ${safeString(student['email']).isEmpty ? 'N/A' : safeString(student['email'])}',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.black87,
-                                                    ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.email_outlined, size: 16, color: colorScheme.onSurfaceVariant),
+                                                      const SizedBox(width: 4),
+                                                      Flexible(
+                                                        child: Text(
+                                                          safeString(student['email']).isEmpty ? 'N/A' : safeString(student['email']),
+                                                          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                                Text(
-                                                  'ID: ${safeString(student['student_id']).isEmpty ? 'N/A' : safeString(student['student_id'])}',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black87,
-                                                    fontWeight: FontWeight.w500,
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.primaryContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    'ID: ${safeString(student['student_id']).isEmpty ? 'N/A' : safeString(student['student_id'])}',
+                                                    style: textTheme.labelMedium?.copyWith(
+                                                      color: colorScheme.onPrimaryContainer,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 4),
                                             // Mobile and Joined date
                                             Row(
                                               children: [
                                                 Expanded(
-                                                  child: Text(
-                                                    'Mobile: ${safeString(student['mobile_no']).isEmpty ? 'N/A' : safeString(student['mobile_no'])}',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.black87,
-                                                    ),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.phone_outlined, size: 16, color: colorScheme.onSurfaceVariant),
+                                                      const SizedBox(width: 4),
+                                                      Flexible(
+                                                        child: Text(
+                                                          safeString(student['mobile_no']).isEmpty ? 'N/A' : safeString(student['mobile_no']),
+                                                          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                                Text(
-                                                  'Joined: ${createdAt != null ? createdAt.toShortDateString() : 'N/A'}',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black54,
+                                                Flexible(
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(Icons.calendar_today_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                                      const SizedBox(width: 4),
+                                                      Flexible(
+                                                        child: Text(
+                                                          'Joined: ${createdAt != null ? createdAt.toShortDateString() : 'N/A'}',
+                                                          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 8),
+                                            const SizedBox(height: 12),
                                             // Delete button
                                             Align(
                                               alignment: Alignment.centerRight,
-                                              child: ElevatedButton.icon(
+                                              child: FilledButton.tonalIcon(
                                                 onPressed: () => _showDeleteDialog(student),
-                                                icon: const Icon(Icons.delete, size: 18),
+                                                icon: const Icon(Icons.delete_outline, size: 18),
                                                 label: const Text('Delete'),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.red,
-                                                  foregroundColor: Colors.white,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor: colorScheme.errorContainer,
+                                                  foregroundColor: colorScheme.onErrorContainer,
                                                 ),
                                               ),
                                             ),

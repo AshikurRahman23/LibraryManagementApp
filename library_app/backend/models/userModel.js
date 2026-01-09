@@ -56,3 +56,24 @@ export const deleteStudent = async (id) => {
     );
     return res.rows[0];
 };
+
+export const updateUserProfile = async (id, name, mobileNo) => {
+    const res = await pool.query(
+        `UPDATE users SET name = $1, mobile_no = $2 WHERE id = $3 RETURNING id, name, email, student_id, mobile_no, role`,
+        [name, mobileNo, id]
+    );
+    return res.rows[0];
+};
+
+export const updateUserPassword = async (id, hashedPassword) => {
+    const res = await pool.query(
+        `UPDATE users SET password = $1 WHERE id = $2 RETURNING id, name, email`,
+        [hashedPassword, id]
+    );
+    return res.rows[0];
+};
+
+export const getUserById = async (id) => {
+    const res = await pool.query('SELECT * FROM users WHERE id=$1', [id]);
+    return res.rows[0];
+};

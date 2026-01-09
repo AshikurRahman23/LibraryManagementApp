@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
 import 'book_screen.dart';
 import 'dashboard_screen.dart';
@@ -22,7 +23,13 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     fetchRequests();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/requests');
   }
 
   Future<void> fetchRequests() async {
@@ -113,25 +120,28 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📌 Borrow Requests'),
+        title: const Text('Borrow Requests'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
-           IconButton(
-            tooltip: 'logout',
+          IconButton(
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             },
-             icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -153,21 +163,39 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(
+            maxWidth: Breakpoints.getMaxContentWidth(context),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
               Expanded(
                 child: loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: colorScheme.primary,
+                        ),
+                      )
                     : requests.isEmpty
                         ? Padding(
                             padding: const EdgeInsets.only(top: 40),
                             child: Center(
-                              child: Text(
-                                'No pending requests at the moment 🎉',
-                                style: TextStyle(fontSize: 16, color: Colors.black54),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 64,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No pending requests at the moment',
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           )
@@ -178,10 +206,9 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
                               children: [
                                 Text(
                                   'Pending Borrow Requests',
-                                  style: TextStyle(
-                                    fontSize: 22,
+                                  style: textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade800,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -197,49 +224,80 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
                                     final requestedAt = safeParseDate(r['requested_at'])?.toLocal().toString().split(' ')[0] ?? safeString(r['requested_at']);
 
                                     return Card(
-                                      elevation: 2,
-                                      margin: const EdgeInsets.symmetric(vertical: 6),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                      child: ListTile(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        title: Text(
-                                          safeString(r['book_title']),
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                        ),
-                                        subtitle: Text('$studentName | ID: $studentId\nRequested at: $requestedAt'),
-                                        isThreeLine: true,
-                                        trailing: status == 'pending'
-                                            ? Row(
-                                                mainAxisSize: MainAxisSize.min,
+                                      elevation: 0,
+                                      color: colorScheme.surfaceContainerLow,
+                                      margin: const EdgeInsets.symmetric(vertical: 4),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              safeString(r['book_title']),
+                                              style: textTheme.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: colorScheme.onSurface,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              '$studentName | ID: $studentId',
+                                              style: textTheme.bodyMedium?.copyWith(
+                                                color: colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Requested: $requestedAt',
+                                              style: textTheme.bodySmall?.copyWith(
+                                                color: colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            if (status == 'pending')
+                                              Wrap(
+                                                alignment: WrapAlignment.end,
+                                                spacing: 8,
+                                                runSpacing: 8,
                                                 children: [
-                                                  ElevatedButton(
-                                                    onPressed: () => approveRequest(r['id']),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.green,
-                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                                    ),
-                                                    child: const Text('Approve', style: TextStyle(fontSize: 12)),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  ElevatedButton(
+                                                  OutlinedButton.icon(
                                                     onPressed: () => rejectRequest(r['id']),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.red,
-                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                    icon: Icon(Icons.close, size: 18, color: colorScheme.error),
+                                                    label: Text('Reject', style: TextStyle(color: colorScheme.error)),
+                                                    style: OutlinedButton.styleFrom(
+                                                      side: BorderSide(color: colorScheme.error),
                                                     ),
-                                                    child: const Text('Reject', style: TextStyle(fontSize: 12)),
+                                                  ),
+                                                  FilledButton.icon(
+                                                    onPressed: () => approveRequest(r['id']),
+                                                    icon: const Icon(Icons.check, size: 18),
+                                                    label: const Text('Approve'),
                                                   ),
                                                 ],
                                               )
-                                            : Text(
-                                                status.toUpperCase(),
-                                                style: TextStyle(
-                                                  color: status == 'approved' ? Colors.green : Colors.red,
-                                                  fontWeight: FontWeight.bold,
+                                            else
+                                              Align(
+                                                alignment: Alignment.centerRight,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: status == 'approved'
+                                                        ? Colors.green.withOpacity(0.12)
+                                                        : colorScheme.errorContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    status.toUpperCase(),
+                                                    style: textTheme.labelMedium?.copyWith(
+                                                      color: status == 'approved'
+                                                          ? Colors.green.shade700
+                                                          : colorScheme.error,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
+                                          ],
+                                        ),
                                       ),
                                     );
                                   },

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
 import 'dashboard_screen.dart';
 import 'book_screen.dart';
@@ -27,7 +28,13 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     _fetchSuggested();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/suggested-books');
   }
 
   @override
@@ -88,6 +95,7 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
 
   Future<void> _confirmDelete(int id, String title) async {
     if (!mounted) return;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -96,7 +104,14 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
         content: Text('Delete suggestion: "$title"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -173,25 +188,28 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('Suggested Books'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
-           IconButton(
-            tooltip: 'logout',
+          IconButton(
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             },
-             icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -209,62 +227,106 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
+          constraints: BoxConstraints(
+            maxWidth: Breakpoints.getMaxContentWidth(context),
+          ),
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(16),
             child: loading
-                ? const CircularProgressIndicator()
+                ? CircularProgressIndicator(color: colorScheme.primary)
                 : error != null
                     ? Column(
                         mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(error!, style: const TextStyle(color: Colors.red)),
-                          const SizedBox(height: 8),
-                          ElevatedButton(onPressed: _fetchSuggested, child: const Text('Retry'))
+                          Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+                          const SizedBox(height: 16),
+                          Text(
+                            error!,
+                            style: textTheme.bodyLarge?.copyWith(color: colorScheme.error),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: _fetchSuggested,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
                         ],
                       )
                     : Column(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: searchController,
-                                  decoration: const InputDecoration(hintText: 'Search by title'),
-                                ),
+                          TextField(
+                            controller: searchController,
+                            onChanged: (_) => _applySearch(),
+                            decoration: InputDecoration(
+                              hintText: 'Search by title',
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                              IconButton(icon: const Icon(Icons.search), onPressed: _applySearch),
-                            ],
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(28),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 16),
                           filtered.isEmpty
-                              ? Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Icon(Icons.check_circle_outline, size: 48, color: Colors.green),
-                                    SizedBox(height: 8),
-                                    Text('No suggested books')
-                                  ],
+                              ? Expanded(
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle_outline,
+                                          size: 64,
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No suggested books',
+                                          style: textTheme.bodyLarge?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 )
                               : Expanded(
                                   child: ListView.separated(
                                     itemCount: filtered.length,
-                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                    separatorBuilder: (_, __) => const SizedBox(height: 4),
                                     itemBuilder: (_, index) {
                                       final s = filtered[index];
                                       final title = s['title'] ?? '(no title)';
                                       final suggestedAt = _formatDate(s['suggested_at']);
 
                                       return Card(
-                                        elevation: 2,
+                                        elevation: 0,
+                                        color: colorScheme.surfaceContainerLow,
                                         child: ListTile(
-                                          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          title: Text(
+                                            title,
+                                            style: textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
                                           subtitle: Padding(
-                                            padding: const EdgeInsets.only(top: 6.0),
-                                            child: Text('Suggested: $suggestedAt', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                            padding: const EdgeInsets.only(top: 4),
+                                            child: Text(
+                                              'Suggested: $suggestedAt',
+                                              style: textTheme.bodySmall?.copyWith(
+                                                color: colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
                                           ),
                                           trailing: IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                            icon: Icon(Icons.delete_outline, color: colorScheme.error),
                                             tooltip: 'Delete suggestion',
                                             onPressed: () => _confirmDelete(s['id'] as int, title),
                                           ),

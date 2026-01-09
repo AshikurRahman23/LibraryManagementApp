@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import 'allbooks_screen.dart';
 import 'dashboard_screen.dart';
 import 'payment_history_screen.dart';
@@ -30,6 +31,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     if (widget.loans != null) {
       currentLoans = List<Map<String, dynamic>>.from(widget.loans?['currentLoans'] ?? []);
@@ -41,6 +43,10 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     } else {
       fetchMyBooks();
     }
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    await storage.write(key: 'last_route', value: '/student/mybooks');
   }
 
   void _onSearchChanged() {
@@ -131,6 +137,8 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
       builder: (ctx) {
         final screenWidth = MediaQuery.of(ctx).size.width;
         final isSmallScreen = screenWidth < 400;
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final textTheme = Theme.of(ctx).textTheme;
         
         return StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
@@ -139,9 +147,9 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
           actionsPadding: const EdgeInsets.all(8),
           title: Row(
             children: [
-              Icon(Icons.payment, color: Colors.blue, size: isSmallScreen ? 20 : 24),
+              Icon(Icons.payment_outlined, color: colorScheme.primary, size: isSmallScreen ? 20 : 24),
               const SizedBox(width: 6),
-              Flexible(child: Text('Pay Penalty', style: TextStyle(fontSize: isSmallScreen ? 16 : 18))),
+              Flexible(child: Text('Pay Penalty', style: textTheme.titleLarge?.copyWith(fontSize: isSmallScreen ? 16 : 18))),
             ],
           ),
           content: SizedBox(
@@ -155,23 +163,33 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(6),
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
                           safeString(loan['title']),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        '৳$penalty',
-                        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '৳$penalty',
+                          style: textTheme.titleSmall?.copyWith(
+                            color: colorScheme.onErrorContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -196,7 +214,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                 const SizedBox(height: 10),
                 
                 // Payment method selection - compact
-                Text('Payment Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmallScreen ? 12 : 13)),
+                Text('Payment Method', style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -354,17 +372,17 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue.shade700, size: 16),
+                      Icon(Icons.info_outline, color: colorScheme.onPrimaryContainer, size: 16),
                       const SizedBox(width: 6),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Demo payment - no real charges.',
-                          style: TextStyle(fontSize: 10, color: Colors.blue),
+                          style: TextStyle(fontSize: 10, color: colorScheme.onPrimaryContainer),
                         ),
                       ),
                     ],
@@ -379,7 +397,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               onPressed: isProcessing ? null : () => Navigator.pop(ctx),
               child: const Text('Cancel', style: TextStyle(fontSize: 13)),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: isProcessing
                   ? null
                   : () async {
@@ -459,21 +477,12 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       }
                     },
               child: isProcessing
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary),
                     )
                   : Text(isProcessing ? '...' : 'Pay', style: const TextStyle(fontSize: 13)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                backgroundColor: selectedMethod == 'bkash' 
-                    ? const Color(0xFFE2136E) 
-                    : selectedMethod == 'nagad' 
-                        ? const Color(0xFFF6921E) 
-                        : Colors.blue,
-                foregroundColor: Colors.white,
-              ),
             ),
           ],
         ),
@@ -521,51 +530,78 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     final remaining = totalPenalty - paidAmount;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: const [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 8),
-            Text('Payment Successful!'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Amount Paid: ৳$paidAmount', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            if (remaining > 0) ...[
-              Text('Remaining Penalty: ৳$remaining', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-            ] else ...[
-              const Text('✅ Penalty fully paid!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final textTheme = Theme.of(ctx).textTheme;
+        
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: colorScheme.primary, size: 32),
+              const SizedBox(width: 8),
+              Text('Payment Successful!', style: textTheme.titleLarge),
             ],
-            Text('Book: ${safeString(loan['title'])}'),
-            const SizedBox(height: 8),
-            Text('Method: ${method.toUpperCase()}'),
-            const SizedBox(height: 8),
-            Text('Transaction ID: $transactionId', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            const SizedBox(height: 16),
-            Text(
-              remaining > 0 
-                ? 'Thank you! Please pay the remaining ৳$remaining to clear your penalty.'
-                : 'Thank you for your payment! Please return the book to the library.',
-              style: const TextStyle(color: Colors.grey),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Amount Paid: ৳$paidAmount', style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (remaining > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('Remaining Penalty: ৳$remaining', 
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onTertiaryContainer,
+                      fontWeight: FontWeight.bold,
+                    )),
+                ),
+                const SizedBox(height: 8),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('Penalty fully paid!', 
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                    )),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Text('Book: ${safeString(loan['title'])}', style: textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              Text('Method: ${method.toUpperCase()}', style: textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              Text('Transaction ID: $transactionId', style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+              const SizedBox(height: 16),
+              Text(
+                remaining > 0 
+                  ? 'Thank you! Please pay the remaining ৳$remaining to clear your penalty.'
+                  : 'Thank you for your payment! Please return the book to the library.',
+                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                fetchMyBooks(); // Refresh the list
+              },
+              child: const Text('OK'),
             ),
           ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              fetchMyBooks(); // Refresh the list
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -617,18 +653,18 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final maxWidth = width > 1100 ? 1100.0 : width * 0.95;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📖 My Borrowed Books'),
+        title: const Text('My Borrowed Books'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () {
               if (!mounted) return;
@@ -636,7 +672,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
             },
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
@@ -665,7 +701,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
@@ -683,9 +719,12 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                               controller: searchController,
                               decoration: InputDecoration(
                                 hintText: 'Search books by title, author...',
-                                prefixIcon: const Icon(Icons.search),
+                                prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                                filled: true,
+                                fillColor: colorScheme.surfaceContainerHighest,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(28),
+                                  borderSide: BorderSide.none,
                                 ),
                                 suffixIcon: searchController.text.isNotEmpty
                                     ? IconButton(
@@ -704,21 +743,49 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       // Currently Borrowed Books
                       Row(
                         children: [
-                          const Text(
+                          Text(
                             'Currently Borrowed',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 8),
                           if (borrowed >= 3)
-                            const Text(
-                              '(Limit Reached)',
-                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: colorScheme.errorContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Limit Reached',
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onErrorContainer,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       filteredCurrentLoans.isEmpty
-                          ? const Text('No books currently borrowed.')
+                          ? Card(
+                              elevation: 0,
+                              color: colorScheme.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.menu_book_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No books currently borrowed.',
+                                        style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
                           : Column(
                               children: filteredCurrentLoans.map((loan) {
                                 final daysLeft = calculateDaysLeft(loan['return_date']);
@@ -728,15 +795,17 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                     : int.tryParse(loan['total_paid'].toString()) ?? 0;
                                 final int remainingPenalty = (totalPenalty - totalPaid).clamp(0, totalPenalty).toInt();
                                 return Card(
-                                  elevation: 3,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: ListTile(
+                                    contentPadding: const EdgeInsets.all(16),
                                     title: Text(
                                       safeString(loan['title']),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                          color: Colors.black87),
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.onSurface,
+                                      ),
                                     ),
                                     subtitle: Builder(builder: (_) {
                                       final issued = safeParseDate(loan['issued_at']);
@@ -750,79 +819,157 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                       return Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'Issued: $issuedText',
-                                            style: const TextStyle(
-                                                fontSize: 14, fontWeight: FontWeight.w500),
-                                          ),
-                                          Text(
-                                            'Return: $returnText',
-                                            style: const TextStyle(
-                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.calendar_today_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  'Issued: $issuedText',
+                                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                           const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.event_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  'Return: $returnText',
+                                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
                                           daysLeft < 0
                                               ? Column(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    Text('Overdue by ${-daysLeft} days',
-                                                        style: const TextStyle(
-                                                            color: Colors.red,
-                                                            fontWeight: FontWeight.bold)),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: colorScheme.errorContainer,
+                                                        borderRadius: BorderRadius.circular(6),
+                                                      ),
+                                                      child: Text(
+                                                        'Overdue by ${-daysLeft} days',
+                                                        style: textTheme.labelMedium?.copyWith(
+                                                          color: colorScheme.onErrorContainer,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
                                                     if (totalPaid > 0) ...[
-                                                      Text('💰 Total Penalty: ৳$totalPenalty',
-                                                          style: const TextStyle(
-                                                              color: Colors.grey,
-                                                              fontSize: 13)),
-                                                      Text('✅ Paid: ৳$totalPaid',
-                                                          style: const TextStyle(
-                                                              color: Colors.green,
-                                                              fontSize: 13,
-                                                              fontWeight: FontWeight.w500)),
+                                                      Text('Total Penalty: ৳$totalPenalty',
+                                                          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
+                                                      Text('Paid: ৳$totalPaid',
+                                                          style: textTheme.bodySmall?.copyWith(
+                                                            color: colorScheme.primary,
+                                                            fontWeight: FontWeight.w500,
+                                                          )),
                                                       if (remainingPenalty > 0)
-                                                        Text('💵 Remaining: ৳$remainingPenalty',
-                                                            style: const TextStyle(
-                                                                color: Colors.orange,
-                                                                fontSize: 14,
-                                                                fontWeight: FontWeight.bold))
+                                                        Container(
+                                                          margin: const EdgeInsets.only(top: 4),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: colorScheme.tertiaryContainer,
+                                                            borderRadius: BorderRadius.circular(6),
+                                                          ),
+                                                          child: Text('Remaining: ৳$remainingPenalty',
+                                                              style: textTheme.labelMedium?.copyWith(
+                                                                color: colorScheme.onTertiaryContainer,
+                                                                fontWeight: FontWeight.bold,
+                                                              )),
+                                                        )
                                                       else
-                                                        const Text('✅ Penalty Cleared!',
-                                                            style: TextStyle(
-                                                                color: Colors.green,
-                                                                fontSize: 14,
-                                                                fontWeight: FontWeight.bold)),
+                                                        Container(
+                                                          margin: const EdgeInsets.only(top: 4),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: colorScheme.primaryContainer,
+                                                            borderRadius: BorderRadius.circular(6),
+                                                          ),
+                                                          child: Text('Penalty Cleared!',
+                                                              style: textTheme.labelMedium?.copyWith(
+                                                                color: colorScheme.onPrimaryContainer,
+                                                                fontWeight: FontWeight.bold,
+                                                              )),
+                                                        ),
                                                     ] else ...[
-                                                      Text('💰 Penalty: ৳$totalPenalty',
-                                                          style: const TextStyle(
-                                                              color: Colors.red,
-                                                              fontSize: 14,
-                                                              fontWeight: FontWeight.bold)),
+                                                      Container(
+                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                        decoration: BoxDecoration(
+                                                          color: colorScheme.errorContainer,
+                                                          borderRadius: BorderRadius.circular(6),
+                                                        ),
+                                                        child: Text('Penalty: ৳$totalPenalty',
+                                                            style: textTheme.labelMedium?.copyWith(
+                                                              color: colorScheme.onErrorContainer,
+                                                              fontWeight: FontWeight.bold,
+                                                            )),
+                                                      ),
                                                     ],
                                                   ],
                                                 )
-                                              : Text('$daysLeft days left',
-                                                  style: const TextStyle(
-                                                      color: Colors.green,
-                                                      fontWeight: FontWeight.w600)),
+                                              : Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.primaryContainer,
+                                                    borderRadius: BorderRadius.circular(6),
+                                                  ),
+                                                  child: Text('$daysLeft days left',
+                                                      style: textTheme.labelMedium?.copyWith(
+                                                        color: colorScheme.onPrimaryContainer,
+                                                        fontWeight: FontWeight.w600,
+                                                      )),
+                                                ),
                                         ],
                                       );
                                     }),
                                     trailing: daysLeft < 0 && remainingPenalty > 0
                                         ? IconButton(
-                                            icon: const Icon(Icons.payment, color: Colors.red, size: 32),
+                                            icon: Icon(Icons.payment_outlined, color: colorScheme.error, size: 32),
                                             tooltip: 'Pay Penalty ৳$remainingPenalty',
                                             onPressed: () => _showPaymentDialog(loan, remainingPenalty),
                                           )
                                         : daysLeft < 0 && remainingPenalty == 0
-                                            ? const Icon(Icons.check_circle, color: Colors.green, size: 32)
+                                            ? Icon(Icons.check_circle, color: colorScheme.primary, size: 32)
                                             : loan['status'] == 'overdue'
-                                                ? const Text('Overdue',
-                                                    style: TextStyle(
-                                                        color: Colors.red,
-                                                        fontWeight: FontWeight.bold))
-                                                : Text(
-                                                    safeString(loan['status']),
-                                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                                ? Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: colorScheme.errorContainer,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text('Overdue',
+                                                        style: textTheme.labelMedium?.copyWith(
+                                                          color: colorScheme.onErrorContainer,
+                                                          fontWeight: FontWeight.bold,
+                                                        )),
+                                                  )
+                                                : Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: colorScheme.secondaryContainer,
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      safeString(loan['status']),
+                                                      style: textTheme.labelMedium?.copyWith(
+                                                        color: colorScheme.onSecondaryContainer,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
                                                   ),
                                   ),
                                 );
@@ -830,24 +977,51 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                             ),
                       const SizedBox(height: 30),
                       // Returned Books
-                      const Text('Returned Books',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text('Returned Books',
+                          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 10),
                       filteredPastLoans.isEmpty
-                          ? const Text('No books returned yet.')
+                          ? Card(
+                              elevation: 0,
+                              color: colorScheme.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Center(
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.history_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No books returned yet.',
+                                        style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
                           : Column(
                               children: filteredPastLoans.map((loan) {
                                 return Card(
-                                  elevation: 3,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: ListTile(
-                                    leading: const Icon(Icons.check_circle, color: Colors.green),
+                                    contentPadding: const EdgeInsets.all(16),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(Icons.check_circle_outline, color: colorScheme.onPrimaryContainer),
+                                    ),
                                     title: Text(
                                       safeString(loan['title']),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: Colors.black87),
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.onSurface,
+                                      ),
                                     ),
                                     subtitle: Builder(builder: (_) {
                                       final issued = safeParseDate(loan['issued_at']);
@@ -865,27 +1039,35 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                                       return Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
+                                          const SizedBox(height: 8),
                                           Text(
                                             'Issued: $issuedText',
-                                            style: const TextStyle(
-                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                                           ),
                                           Text(
-                                            'Return: $returnText',
-                                            style: const TextStyle(
-                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                            'Due: $returnText',
+                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                                           ),
                                           Text(
                                             'Returned: $returnedText',
-                                            style: const TextStyle(
-                                                fontSize: 14, fontWeight: FontWeight.w500),
+                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                                           ),
                                         ],
                                       );
                                     }),
-                                    trailing: Text(
-                                      loan['status'] ?? '',
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        loan['status'] ?? '',
+                                        style: textTheme.labelMedium?.copyWith(
+                                          color: colorScheme.onSecondaryContainer,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 );

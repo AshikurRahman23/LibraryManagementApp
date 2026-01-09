@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import '../auth/login_screen.dart';
 
 class SuperAdminPaymentHistoryScreen extends StatefulWidget {
@@ -22,8 +23,14 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     fetchPayments();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/superadmin/payments');
   }
 
   @override
@@ -136,20 +143,23 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('💳 Payment History'),
+        title: const Text('Payment History'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/superadmin/dashboard'),
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () => navigateTo('/auth/logout'),
             icon: const Icon(Icons.logout),
           ),
@@ -175,37 +185,45 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 TextField(
                   controller: searchController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search by roll/student ID, name, book, or method',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: loading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
                       : filteredPayments.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade400),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No payment records found.',
-                                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-                                  ),
-                                ],
+                          ? Card(
+                              elevation: 0,
+                              color: colorScheme.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.receipt_long_outlined, size: 64, color: colorScheme.onSurfaceVariant),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No payment records found.',
+                                      style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -216,14 +234,18 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
                                 final paidAt = safeParseDate(payment['created_at']);
                                 final roll = safeString(payment['student_id']);
                                 return Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: _getPaymentColor(method).withOpacity(0.2),
+                                    contentPadding: const EdgeInsets.all(16),
+                                    leading: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: _getPaymentColor(method).withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                       child: Icon(
                                         _getPaymentIcon(method),
                                         color: _getPaymentColor(method),
@@ -231,35 +253,94 @@ class _SuperAdminPaymentHistoryScreenState extends State<SuperAdminPaymentHistor
                                     ),
                                     title: Text(
                                       safeString(payment['book_title']),
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                                     ),
                                     subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Show Roll/Student ID from user record
-                                        Text(
-                                          'Roll: $roll',
-                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.badge_outlined, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                'Roll: $roll',
+                                                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text(
-                                          'Name: ${safeString(payment['student_name'])}',
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.person_outline, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                safeString(payment['student_name']),
+                                                style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text('Method: ${method.toUpperCase()}'),
-                                        Text(
-                                          'Date: ${paidAt != null ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}" : 'N/A'}',
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.secondaryContainer,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                method.toUpperCase(),
+                                                style: textTheme.labelMedium?.copyWith(
+                                                  color: colorScheme.onSecondaryContainer,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.tertiaryContainer,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                paidAt != null
+                                                    ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}"
+                                                    : 'N/A',
+                                                style: textTheme.labelMedium?.copyWith(
+                                                  color: colorScheme.onTertiaryContainer,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
+                                        const SizedBox(height: 4),
                                         Text(
                                           'Transaction: ${safeString(payment['transaction_id'])}',
-                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                                         ),
                                       ],
                                     ),
-                                    trailing: Text(
-                                      '৳${payment['amount'] ?? 0}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: Colors.green,
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '৳${payment['amount'] ?? 0}',
+                                        style: textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.onPrimaryContainer,
+                                        ),
                                       ),
                                     ),
                                   ),

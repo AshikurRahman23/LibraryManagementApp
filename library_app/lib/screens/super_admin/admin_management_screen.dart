@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import 'book_screen.dart' as super_admin_book;
 import 'student_screen.dart' as super_admin_student;
 import 'request_screen.dart' as super_admin_request;
@@ -28,7 +29,13 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     _loadAdmins();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/superadmin/admins');
   }
 
   Future<void> _loadAdmins({String? search}) async {
@@ -76,7 +83,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Name *',
-                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -84,7 +90,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: emailController,
                 decoration: const InputDecoration(
                   labelText: 'Email *',
-                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -93,7 +98,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: passwordController,
                 decoration: const InputDecoration(
                   labelText: 'Password *',
-                  border: OutlineInputBorder(),
                 ),
                 obscureText: true,
               ),
@@ -102,7 +106,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: mobileController,
                 decoration: const InputDecoration(
                   labelText: 'Mobile No',
-                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -114,7 +117,7 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               if (nameController.text.isEmpty ||
                   emailController.text.isEmpty ||
@@ -174,7 +177,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Name *',
-                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -182,7 +184,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: emailController,
                 decoration: const InputDecoration(
                   labelText: 'Email *',
-                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
@@ -191,7 +192,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 controller: mobileController,
                 decoration: const InputDecoration(
                   labelText: 'Mobile No',
-                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
               ),
@@ -203,7 +203,7 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               if (nameController.text.isEmpty || emailController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -258,7 +258,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
               controller: passwordController,
               decoration: const InputDecoration(
                 labelText: 'New Password',
-                border: OutlineInputBorder(),
               ),
               obscureText: true,
             ),
@@ -267,7 +266,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
               controller: confirmController,
               decoration: const InputDecoration(
                 labelText: 'Confirm Password',
-                border: OutlineInputBorder(),
               ),
               obscureText: true,
             ),
@@ -278,7 +276,7 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               if (passwordController.text.length < 6) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -322,6 +320,8 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
   }
 
   void _showDeleteConfirmation(Map<String, dynamic> admin) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -332,8 +332,13 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete'),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.errorContainer,
+              foregroundColor: colorScheme.onErrorContainer,
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
 
@@ -352,7 +357,6 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                 );
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -401,20 +405,23 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('👤 Manage Admins'),
+        title: const Text('Manage Admins'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => _navigateTo('/superadmin/dashboard'),
           ),
            IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               _navigateTo('/auth/logout');
@@ -442,12 +449,11 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddAdminDialog,
-        backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add),
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Column(
             children: [
               // Search bar
@@ -457,129 +463,200 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Search admins...',
-                    prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: colorScheme.onSurfaceVariant),
+                            onPressed: () {
+                              _searchController.clear();
+                              _loadAdmins();
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    _loadAdmins(search: value);
+                  },
                 ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _loadAdmins();
-                        },
-                      )
-                    : null,
               ),
-              onChanged: (value) {
-                _loadAdmins(search: value);
-              },
-            ),
-          ),
 
-          // Admin list
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(_error!,
-                                style: const TextStyle(color: Colors.red)),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => _loadAdmins(),
-                              child: const Text('Retry'),
+              // Admin list
+              Expanded(
+                child: _loading
+                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                    : _error != null
+                        ? Card(
+                            elevation: 0,
+                            color: colorScheme.errorContainer,
+                            margin: const EdgeInsets.all(16),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.error_outline, size: 48, color: colorScheme.onErrorContainer),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _error!,
+                                    style: textTheme.bodyLarge?.copyWith(color: colorScheme.onErrorContainer),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  FilledButton.icon(
+                                    onPressed: () => _loadAdmins(),
+                                    icon: const Icon(Icons.refresh),
+                                    label: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
-                      )
-                    : _admins.isEmpty
-                        ? const Center(child: Text('No admins found'))
-                        : ListView.builder(
-                            itemCount: _admins.length,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemBuilder: (context, index) {
-                              final admin = _admins[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.deepPurple,
-                                    child: Text(
-                                      (admin['name'] ?? 'A')[0].toUpperCase(),
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                  title: Text(admin['name'] ?? 'Unknown'),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                          )
+                        : _admins.isEmpty
+                            ? Card(
+                                elevation: 0,
+                                color: colorScheme.surfaceContainerLow,
+                                margin: const EdgeInsets.all(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(admin['email'] ?? ''),
-                                      if (admin['mobile_no'] != null)
-                                        Text(admin['mobile_no']),
-                                    ],
-                                  ),
-                                  isThreeLine: admin['mobile_no'] != null,
-                                  trailing: PopupMenuButton<String>(
-                                    onSelected: (value) {
-                                      switch (value) {
-                                        case 'edit':
-                                          _showEditAdminDialog(admin);
-                                          break;
-                                        case 'password':
-                                          _showChangePasswordDialog(admin);
-                                          break;
-                                        case 'delete':
-                                          _showDeleteConfirmation(admin);
-                                          break;
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: ListTile(
-                                          leading: Icon(Icons.edit),
-                                          title: Text('Edit'),
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'password',
-                                        child: ListTile(
-                                          leading: Icon(Icons.lock),
-                                          title: Text('Change Password'),
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: ListTile(
-                                          leading: Icon(Icons.delete,
-                                              color: Colors.red),
-                                          title: Text('Delete',
-                                              style:
-                                                  TextStyle(color: Colors.red)),
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
+                                      Icon(Icons.admin_panel_settings_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'No admins found',
+                                        style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
                                       ),
                                     ],
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                              )
+                            : ListView.builder(
+                                itemCount: _admins.length,
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemBuilder: (context, index) {
+                                  final admin = _admins[index];
+                                  return Card(
+                                    elevation: 0,
+                                    color: colorScheme.surfaceContainerLow,
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.all(12),
+                                      leading: Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            (admin['name'] ?? 'A')[0].toUpperCase(),
+                                            style: textTheme.titleLarge?.copyWith(
+                                              color: colorScheme.onPrimaryContainer,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        admin['name'] ?? 'Unknown',
+                                        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                      ),
+                                      subtitle: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.email_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  admin['email'] ?? '',
+                                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (admin['mobile_no'] != null) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.phone_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    admin['mobile_no'],
+                                                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      isThreeLine: admin['mobile_no'] != null,
+                                      trailing: PopupMenuButton<String>(
+                                        onSelected: (value) {
+                                          switch (value) {
+                                            case 'edit':
+                                              _showEditAdminDialog(admin);
+                                              break;
+                                            case 'password':
+                                              _showChangePasswordDialog(admin);
+                                              break;
+                                            case 'delete':
+                                              _showDeleteConfirmation(admin);
+                                              break;
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: ListTile(
+                                              leading: Icon(Icons.edit_outlined, color: colorScheme.onSurface),
+                                              title: const Text('Edit'),
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'password',
+                                            child: ListTile(
+                                              leading: Icon(Icons.lock_outline, color: colorScheme.onSurface),
+                                              title: const Text('Change Password'),
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: ListTile(
+                                              leading: Icon(Icons.delete_outline, color: colorScheme.error),
+                                              title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+                                              contentPadding: EdgeInsets.zero,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
               ),
-            ),
+            ],
           ),
-        );
-      }
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {

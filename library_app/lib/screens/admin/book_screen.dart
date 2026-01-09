@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'student_screen.dart';
 import 'request_screen.dart';
@@ -36,8 +37,14 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     fetchBooks();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/books');
   }
 
   @override
@@ -169,27 +176,32 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Update Book'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-                controller: editTitleController,
-                decoration: const InputDecoration(labelText: 'Title')),
-            TextField(
-                controller: editAuthorController,
-                decoration: const InputDecoration(labelText: 'Author')),
-            TextField(
-                controller: editTotalController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Total Copies')),
-            TextField(
-                controller: editGenreController,
-                decoration: const InputDecoration(labelText: 'Genre')),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: editTitleController,
+                  decoration: const InputDecoration(labelText: 'Title')),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: editAuthorController,
+                  decoration: const InputDecoration(labelText: 'Author')),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: editTotalController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Total Copies')),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: editGenreController,
+                  decoration: const InputDecoration(labelText: 'Genre')),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: updateBook, child: const Text('Update')),
+          FilledButton(onPressed: updateBook, child: const Text('Update')),
         ],
       ),
     );
@@ -231,24 +243,27 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📚 Manage Books'),
+        title: const Text('Manage Books'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-              icon: const Icon(Icons.home),
+              icon: const Icon(Icons.home_outlined),
               tooltip: 'Dashboard',
               onPressed: () => navigateTo('/admin/dashboard')),
-           IconButton(
-            tooltip: 'logout',
+          IconButton(
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             },
-             icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -270,7 +285,9 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(
+            maxWidth: Breakpoints.getMaxContentWidth(context),
+          ),
           child: Column(
             children: [
               Expanded(
@@ -279,42 +296,78 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                   child: Column(
                     children: [
                       // Add Book Form
-                      ExpansionTile(
-                        title: const Text('Add New Book'),
-                        children: [
-                          TextField(
-                              controller: addTitleController,
-                              decoration: const InputDecoration(labelText: 'Title')),
-                          TextField(
-                              controller: addAuthorController,
-                              decoration: const InputDecoration(labelText: 'Author')),
-                          TextField(
-                              controller: addTotalController,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(labelText: 'Total Copies')),
-                          TextField(
-                              controller: addGenreController,
-                              decoration: const InputDecoration(labelText: 'Genre')),
-                          const SizedBox(height: 8),
-                          ElevatedButton(onPressed: addBook, child: const Text('Add Book'))
-                        ],
+                      Card(
+                        elevation: 0,
+                        color: colorScheme.surfaceContainerLow,
+                        child: ExpansionTile(
+                          title: Text(
+                            'Add New Book',
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          leading: Icon(
+                            Icons.add_circle_outline,
+                            color: colorScheme.primary,
+                          ),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                      controller: addTitleController,
+                                      decoration: const InputDecoration(labelText: 'Title')),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                      controller: addAuthorController,
+                                      decoration: const InputDecoration(labelText: 'Author')),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                      controller: addTotalController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: const InputDecoration(labelText: 'Total Copies')),
+                                  const SizedBox(height: 12),
+                                  TextField(
+                                      controller: addGenreController,
+                                      decoration: const InputDecoration(labelText: 'Genre')),
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: FilledButton.icon(
+                                      onPressed: addBook,
+                                      icon: const Icon(Icons.add),
+                                      label: const Text('Add Book'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       // Search Bar
                       TextField(
                         controller: searchController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Search by title, author, or genre',
-                          prefixIcon: Icon(Icons.search),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          filled: true,
+                          fillColor: colorScheme.surfaceContainerHighest,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(8)),
+                            borderRadius: BorderRadius.circular(28),
+                            borderSide: BorderSide.none,
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       // Books List
                       loading
-                          ? const CircularProgressIndicator()
+                          ? CircularProgressIndicator(color: colorScheme.primary)
                           : ListView.builder(
                               itemCount: filteredBooks.length,
                               shrinkWrap: true,
@@ -322,41 +375,59 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                               itemBuilder: (_, index) {
                                 final book = filteredBooks[index];
                                 return Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10)),
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     title: Text(
                                       book['title'],
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
                                     ),
                                     subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
+                                        const SizedBox(height: 4),
                                         Text(
-                                          '✍️ Author: ${book['author'] ?? '-'}',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                          'Author: ${book['author'] ?? '-'}',
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
                                         Text(
-                                          '🏷️ Genre: ${book['genre'] ?? '-'}',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                          'Genre: ${book['genre'] ?? '-'}',
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
-                                        Text(
-                                          '📦 Total: ${book['total_copies'] ?? 0} | Available: ${book['available_copies'] ?? 0}',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.blueGrey),
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.secondaryContainer,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'Total: ${book['total_copies'] ?? 0} | Available: ${book['available_copies'] ?? 0}',
+                                            style: textTheme.labelMedium?.copyWith(
+                                              color: colorScheme.onSecondaryContainer,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                    trailing: Wrap(
-                                      spacing: 4,
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blueGrey),
+                                            icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
                                             onPressed: () => openEditModal(book)),
                                         IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                            icon: Icon(Icons.delete_outline, color: colorScheme.error),
                                             onPressed: () => deleteBook(book['id'])),
                                       ],
                                     ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import 'mybooks_screen.dart';
 import 'dashboard_screen.dart';
 import '../auth/login_screen.dart';
@@ -28,9 +29,14 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.text = widget.searchQuery;
     searchController.addListener(_onSearchChanged);
     fetchBooks(search: widget.searchQuery);
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    await storage.write(key: 'last_route', value: '/student/books');
   }
 
   @override
@@ -161,55 +167,66 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
     }
   }
 
-  Widget buildActionButton(Map<String, dynamic> book) {
+  Widget buildActionButton(Map<String, dynamic> book, ColorScheme colorScheme, TextTheme textTheme) {
     if (borrowed >= 3) {
-      return const Text(
-        'Limit Reached',
-        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Limit Reached',
+          style: textTheme.labelMedium?.copyWith(
+            color: colorScheme.onErrorContainer,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       );
     }
 
     if ((book['available_copies'] ?? 0) > 0) {
-      return ElevatedButton(
+      return FilledButton(
         onPressed: () => borrowBook(book['id']),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 3, 242, 55),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        child: const Text(
-          'Borrow',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        child: const Text('Borrow'),
       );
     }
 
-    return const Text(
-      'Unavailable',
-      style: TextStyle(color: Color.fromARGB(255, 216, 7, 7), fontWeight: FontWeight.w500),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Unavailable',
+        style: textTheme.labelMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final maxWidth = width > 1100 ? 1100.0 : width * 0.95;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📚 All Books'),
+        title: const Text('All Books'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/student/dashboard'),
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
@@ -248,9 +265,12 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                   controller: searchController,
                   decoration: InputDecoration(
                     hintText: 'Search books by title, author...',
-                    prefixIcon: const Icon(Icons.search),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
@@ -258,12 +278,25 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
 
                 // Books list
                 isLoading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
                     : filteredBooks.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No books in the library yet.',
-                              style: TextStyle(fontSize: 16),
+                        ? Card(
+                            elevation: 0,
+                            color: colorScheme.surfaceContainerLow,
+                            child: Padding(
+                              padding: const EdgeInsets.all(32),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.library_books_outlined, size: 48, color: colorScheme.onSurfaceVariant),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'No books in the library yet.',
+                                      style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           )
                         : ListView.builder(
@@ -273,17 +306,16 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                             itemBuilder: (context, index) {
                               final book = filteredBooks[index];
                               return Card(
-                                elevation: 3,
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 8),
+                                elevation: 0,
+                                color: colorScheme.surfaceContainerLow,
+                                margin: const EdgeInsets.symmetric(vertical: 4),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.all(12),
+                                  contentPadding: const EdgeInsets.all(16),
                                   title: Text(
                                     safeString(book['title']),
-                                    style: const TextStyle(
+                                    style: textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Colors.black87,
+                                      color: colorScheme.onSurface,
                                     ),
                                   ),
                                   subtitle: Builder(builder: (_) {
@@ -298,32 +330,62 @@ class _StudentAllBooksScreenState extends State<StudentAllBooksScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          '✍️ Author: ${author.isEmpty ? '-' : author}',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.person_outline, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                'Author: ${author.isEmpty ? '-' : author}',
+                                                style: textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text(
-                                          '🏷️ Genre: ${genre.isEmpty ? '-' : genre}',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.label_outline, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                'Genre: ${genre.isEmpty ? '-' : genre}',
+                                                style: textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Text(
-                                          '📦 Available: $available',
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.blueGrey,
-                                          ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.inventory_2_outlined, size: 16, color: colorScheme.primary),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                'Available: $available',
+                                                style: textTheme.bodyMedium?.copyWith(
+                                                  color: colorScheme.primary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     );
                                   }),
-                                  trailing: buildActionButton(book),
+                                  trailing: buildActionButton(book, colorScheme, textTheme),
                                 ),
                               );
                             },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import 'allbooks_screen.dart';
 import 'mybooks_screen.dart';
 import 'dashboard_screen.dart';
@@ -24,7 +25,12 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     fetchPaymentHistory();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    await storage.write(key: 'last_route', value: '/student/payments');
   }
 
   Future<void> fetchPaymentHistory() async {
@@ -112,20 +118,23 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('💳 Payment History'),
+        title: const Text('Payment History'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/student/dashboard'),
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () => navigateTo('/auth/logout'),
             icon: const Icon(Icons.logout),
           ),
@@ -146,19 +155,22 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
           : Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
+                constraints: BoxConstraints(maxWidth: maxWidth),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 20),
-                      const Text(
+                      Text(
                         'Your Payment History',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Expanded(
@@ -167,11 +179,11 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.receipt_long, size: 80, color: Colors.grey.shade400),
+                                    Icon(Icons.receipt_long_outlined, size: 80, color: colorScheme.onSurfaceVariant),
                                     const SizedBox(height: 16),
                                     Text(
                                       'No payment history yet.',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                                      style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
                                     ),
                                   ],
                                 ),
@@ -183,14 +195,17 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
                                   final method = safeString(payment['payment_method']);
                                   final paidAt = safeParseDate(payment['created_at']);
                                   return Card(
-                                    elevation: 2,
-                                    margin: const EdgeInsets.symmetric(vertical: 6),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                    elevation: 0,
+                                    color: colorScheme.surfaceContainerLow,
+                                    margin: const EdgeInsets.symmetric(vertical: 4),
                                     child: ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: _getPaymentColor(method).withOpacity(0.2),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      leading: Container(
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: _getPaymentColor(method).withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
                                         child: Icon(
                                           _getPaymentIcon(method),
                                           color: _getPaymentColor(method),
@@ -198,27 +213,41 @@ class _StudentPaymentHistoryScreenState extends State<StudentPaymentHistoryScree
                                       ),
                                       title: Text(
                                         safeString(payment['book_title']),
-                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                        style: textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: colorScheme.onSurface,
+                                        ),
                                       ),
                                       subtitle: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text('Method: ${method.toUpperCase()}'),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Method: ${method.toUpperCase()}',
+                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                          ),
                                           Text(
                                             'Date: ${paidAt != null ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}" : 'N/A'}',
+                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
                                           ),
                                           Text(
                                             'Transaction: ${safeString(payment['transaction_id'])}',
-                                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                            style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                                           ),
                                         ],
                                       ),
-                                      trailing: Text(
-                                        '৳${payment['amount'] ?? 0}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                          color: Colors.green,
+                                      trailing: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primaryContainer,
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '৳${payment['amount'] ?? 0}',
+                                          style: textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.onPrimaryContainer,
+                                          ),
                                         ),
                                       ),
                                     ),

@@ -49,7 +49,8 @@ export const getAllLoans = async () => {
             b.author,
             b.genre,
             u.name AS student_name,
-            u.student_id
+            u.student_id,
+            COALESCE((SELECT SUM(amount) FROM payments WHERE loan_id = l.id), 0) as total_paid
         FROM loans l
         JOIN books b ON l.book_id = b.id
         JOIN users u ON l.student_id = u.id
@@ -67,12 +68,14 @@ export async function getSearchLoans(search) {
             b.title, 
             b.author,
             b.genre,
-            u.name as student, 
+            u.name as student_name, 
             u.student_id, 
             l.status, 
             l.issued_at, 
             l.returned_at,
-            l.book_id
+            l.return_date,
+            l.book_id,
+            COALESCE((SELECT SUM(amount) FROM payments WHERE loan_id = l.id), 0) as total_paid
          FROM loans l
          JOIN books b ON l.book_id = b.id
          JOIN users u ON l.student_id = u.id

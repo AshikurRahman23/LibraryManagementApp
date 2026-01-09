@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
 import '../../screens/auth/login_screen.dart';
 
@@ -22,8 +23,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
   @override
   void initState() {
     super.initState();
+    _saveCurrentRoute();
     searchController.addListener(_onSearchChanged);
     fetchLoans();
+  }
+
+  Future<void> _saveCurrentRoute() async {
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'last_route', value: '/admin/loans');
   }
 
   @override
@@ -150,25 +157,28 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('📖 Loan Management'),
+        title: const Text('Loan Management'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_outlined),
             tooltip: 'Dashboard',
             onPressed: () => navigateTo('/admin/dashboard'),
           ),
           IconButton(
-            tooltip: 'logout',
+            tooltip: 'Logout',
             onPressed: () {
               if (!mounted) return;
               navigateTo('/auth/logout');
             },
-             icon: const Icon(Icons.logout)),
+            icon: const Icon(Icons.logout),
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
@@ -190,31 +200,55 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
+          constraints: BoxConstraints(
+            maxWidth: Breakpoints.getMaxContentWidth(context),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 TextField(
                   controller: searchController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search by book title, author, or student name',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                      borderRadius: BorderRadius.circular(28),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: loading
-                      ? const Center(child: CircularProgressIndicator())
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            color: colorScheme.primary,
+                          ),
+                        )
                       : filteredLoans.isEmpty
-                          ? const Center(
-                              child: Text(
-                                'No loan records available',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.black54),
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.library_books_outlined,
+                                    size: 64,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No loan records available',
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ),
                             )
                           : ListView.builder(
@@ -222,61 +256,135 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                               itemBuilder: (_, index) {
                                 final loan = filteredLoans[index];
                                 final isIssued = loan['status'] == 'issued';
-                                final penalty = isIssued ? calculatePenalty(loan['return_date']?.toString()) : 0;
+                                final calculatedPenalty = isIssued ? calculatePenalty(loan['return_date']?.toString()) : 0;
+                                final totalPaid = int.tryParse(loan['total_paid']?.toString() ?? '0') ?? 0;
+                                final remainingPenalty = (calculatedPenalty - totalPaid).clamp(0, calculatedPenalty);
+                                final isPenaltyFullyPaid = calculatedPenalty > 0 && remainingPenalty == 0;
 
                                 return Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: ListTile(
-                                    title: Text(
-                                      safeString(loan['title']),
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                    subtitle: Column(
+                                  elevation: 0,
+                                  color: colorScheme.surfaceContainerLow,
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
+                                          safeString(loan['title']),
+                                          style: textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
                                           'Borrowed by: ${safeString(loan['student_name'])} (ID: ${safeString(loan['student_id'])})',
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
                                         ),
                                         if (loan['return_date'] != null)
                                           Text(
-                                            '📅 Due: ${safeString(loan['return_date']).split('T')[0]}',
-                                          ),
-                                        Text(
-                                          'Status: ${safeString(loan['status']).toUpperCase()}',
-                                          style: TextStyle(
-                                            color: isIssued
-                                                ? Colors.orange
-                                                : Colors.green,
-                                          ),
-                                        ),
-                                        if (isIssued && penalty > 0)
-                                          Text(
-                                            '💰 Penalty: ৳$penalty',
-                                            style: const TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold,
+                                            'Due: ${safeString(loan['return_date']).split('T')[0]}',
+                                            style: textTheme.bodyMedium?.copyWith(
+                                              color: colorScheme.onSurfaceVariant,
                                             ),
                                           ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: isIssued
+                                                    ? Colors.orange.withOpacity(0.12)
+                                                    : Colors.green.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                safeString(loan['status']).toUpperCase(),
+                                                style: textTheme.labelMedium?.copyWith(
+                                                  color: isIssued ? Colors.orange.shade700 : Colors.green.shade700,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            if (isIssued && calculatedPenalty > 0) ...[
+                                              if (isPenaltyFullyPaid)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green.withOpacity(0.12),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(Icons.check_circle, size: 14, color: Colors.green.shade700),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Paid: ৳$totalPaid',
+                                                        style: textTheme.labelMedium?.copyWith(
+                                                          color: Colors.green.shade700,
+                                                          fontWeight: FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              else ...[
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.errorContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    'Due: ৳$remainingPenalty',
+                                                    style: textTheme.labelMedium?.copyWith(
+                                                      color: colorScheme.error,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (totalPaid > 0)
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.green.withOpacity(0.12),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      'Paid: ৳$totalPaid',
+                                                      style: textTheme.labelMedium?.copyWith(
+                                                        color: Colors.green.shade700,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ],
+                                            if (isIssued)
+                                              FilledButton(
+                                                onPressed: () => markReturned(
+                                                  loan['id'],
+                                                  loan['book_id'],
+                                                ),
+                                                child: const Text('Mark Returned'),
+                                              )
+                                            else
+                                              Icon(
+                                                Icons.check_circle,
+                                                color: Colors.green.shade600,
+                                              ),
+                                          ],
+                                        ),
                                       ],
                                     ),
-                                    trailing: isIssued
-                                        ? ElevatedButton(
-                                            onPressed: () =>
-                                                markReturned(
-                                              loan['id'],
-                                              loan['book_id'],
-                                            ),
-                                            child: const Text('Mark Returned'),
-                                          )
-                                        : const Icon(
-                                            Icons.check_circle,
-                                            color: Colors.green,
-                                          ),
                                   ),
                                 );
                               },

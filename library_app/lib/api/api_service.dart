@@ -423,4 +423,52 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  /// Update student profile
+  Future<Map<String, dynamic>> updateStudentProfile({
+    required String name,
+    String? mobileNo,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/student/profile'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'name': name,
+        'mobile_no': mobileNo,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Change student password
+  Future<Map<String, dynamic>> changeStudentPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/student/change-password'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Change superadmin password
+  Future<Map<String, dynamic>> changeSuperAdminPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/superadmin/change-password'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    );
+    return jsonDecode(response.body);
+  }
 }
