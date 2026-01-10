@@ -1,10 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiService {
-  // Backend base URL
-  static const String baseUrl = 'http://localhost:3000';
+  // Backend base URL - localhost for web, IP for phone
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000';  // Web/Chrome
+    } else {
+      return 'http://192.168.0.101:3000';  // Phone/Mobile
+    }
+  }
 
   // Secure storage for JWT token and last route
   final FlutterSecureStorage storage = const FlutterSecureStorage();
