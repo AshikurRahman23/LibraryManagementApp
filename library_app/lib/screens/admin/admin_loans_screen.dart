@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
+import '../../utils/admin_permissions.dart';
 import '../../screens/auth/login_screen.dart';
 
 class AdminLoansScreen extends StatefulWidget {
@@ -24,8 +25,14 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     searchController.addListener(_onSearchChanged);
     fetchLoans();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -182,14 +189,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (_) => AdminPermissionService.buildMenuItems(),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -368,13 +368,28 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                                                   ),
                                               ],
                                             ],
-                                            if (isIssued)
+                                            if (isIssued && AdminPermissionService.canManageLoans)
                                               FilledButton(
                                                 onPressed: () => markReturned(
                                                   loan['id'],
                                                   loan['book_id'],
                                                 ),
                                                 child: const Text('Mark Returned'),
+                                              )
+                                            else if (isIssued && !AdminPermissionService.canManageLoans)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange.withOpacity(0.12),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  'ACTIVE',
+                                                  style: textTheme.labelMedium?.copyWith(
+                                                    color: Colors.orange.shade700,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                               )
                                             else
                                               Icon(

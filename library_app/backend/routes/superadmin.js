@@ -9,7 +9,9 @@ import {
   createAdmin,
   updateAdmin,
   updateAdminPassword,
-  deleteAdmin
+  deleteAdmin,
+  updateAdminPermissions,
+  ADMIN_PERMISSIONS
 } from '../models/adminModel.js';
 import { deleteStudent, getUserById, updateUserPassword } from '../models/userModel.js';
 
@@ -17,6 +19,21 @@ const router = express.Router();
 
 // All routes require authentication and super_admin role
 router.use(authenticate, superAdminOnly);
+
+/* ---------- Get Available Permissions ---------- */
+router.get('/permissions', (req, res) => {
+  res.json({
+    success: true,
+    permissions: Object.values(ADMIN_PERMISSIONS),
+    permissionsInfo: {
+      manage_books: 'Add, edit, and delete books',
+      delete_student: 'Delete student accounts',
+      approve_requests: 'Approve or reject book borrow requests',
+      manage_loans: 'Manage loan returns',
+      manage_suggestions: 'Delete suggested books'
+    }
+  });
+});
 
 /* ---------- Get All Admins ---------- */
 router.get('/admins', async (req, res) => {
@@ -47,7 +64,7 @@ router.get('/admins/:id', async (req, res) => {
 /* ---------- Create New Admin ---------- */
 router.post('/admins/add', async (req, res) => {
   try {
-    const { name, email, password, mobile_no } = req.body;
+    const { name, email, password, mobile_no, permissions } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -56,11 +73,15 @@ router.post('/admins/add', async (req, res) => {
       });
     }
 
+    // Validate permissions array
+    const validPermissions = Object.values(ADMIN_PERMISSIONS);
+    const adminPermissions = (permissions || []).filter(p => validPermissions.includes(p));
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create admin
-    const newAdmin = await createAdmin(name, email, hashedPassword, mobile_no);
+    // Create admin with permissions
+    const newAdmin = await createAdmin(name, email, hashedPassword, mobile_no, adminPermissions);
 
     res.json({
       success: true,
@@ -86,7 +107,7 @@ router.post('/admins/add', async (req, res) => {
 router.put('/admins/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, mobile_no } = req.body;
+    const { name, email, mobile_no, permissions } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({
@@ -95,7 +116,14 @@ router.put('/admins/:id', async (req, res) => {
       });
     }
 
-    const updatedAdmin = await updateAdmin(id, name, email, mobile_no);
+    // Validate permissions if provided
+    let adminPermissions = null;
+    if (permissions !== undefined) {
+      const validPermissions = Object.values(ADMIN_PERMISSIONS);
+      adminPermissions = (permissions || []).filter(p => validPermissions.includes(p));
+    }
+
+    const updatedAdmin = await updateAdmin(id, name, email, mobile_no, adminPermissions);
 
     if (!updatedAdmin) {
       return res.status(404).json({
@@ -120,6 +148,36 @@ router.put('/admins/:id', async (req, res) => {
     }
 
     res.status(500).json({ success: false, message: 'Failed to update admin' });
+  }
+});
+
+/* ---------- Update Admin Permissions Only ---------- */
+router.put('/admins/:id/permissions', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { permissions } = req.body;
+
+    // Validate permissions
+    const validPermissions = Object.values(ADMIN_PERMISSIONS);
+    const adminPermissions = (permissions || []).filter(p => validPermissions.includes(p));
+
+    const updatedAdmin = await updateAdminPermissions(id, adminPermissions);
+
+    if (!updatedAdmin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Admin not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Permissions updated successfully',
+      admin: updatedAdmin
+    });
+  } catch (err) {
+    console.error('Error updating permissions:', err);
+    res.status(500).json({ success: false, message: 'Failed to update permissions' });
   }
 });
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../utils/admin_permissions.dart';
 
 class ApiService {
   // Backend base URL - localhost for web, IP for phone
@@ -77,6 +78,7 @@ class ApiService {
   Future<void> logout() async {
     await storage.delete(key: 'jwt_token');
     await storage.delete(key: 'last_route');
+    await AdminPermissionService.clearPermissions();
   }
 
   Future<bool> isLoggedIn() async {
@@ -302,11 +304,21 @@ class ApiService {
   // ------------------- Super Admin - Admin Management -------------------
   
   /// Get all admins (Super Admin only)
+  /// Get all admins (Super Admin only)
   Future<Map<String, dynamic>> getAllAdmins({String? search}) async {
     String url = '$baseUrl/superadmin/admins';
     if (search != null && search.isNotEmpty) url += '?search=$search';
     final response = await http.get(
       Uri.parse(url),
+      headers: await _getHeaders(withAuth: true),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Get available admin permissions (Super Admin only)
+  Future<Map<String, dynamic>> getAdminPermissions() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/superadmin/permissions'),
       headers: await _getHeaders(withAuth: true),
     );
     return jsonDecode(response.body);
@@ -321,12 +333,13 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  /// Create new admin (Super Admin only)
+  /// Create new admin with permissions (Super Admin only)
   Future<Map<String, dynamic>> createAdmin({
     required String name,
     required String email,
     required String password,
     String? mobileNo,
+    List<String>? permissions,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/superadmin/admins/add'),
@@ -336,26 +349,45 @@ class ApiService {
         'email': email,
         'password': password,
         'mobile_no': mobileNo,
+        'permissions': permissions ?? [],
       }),
     );
     return jsonDecode(response.body);
   }
 
-  /// Update admin details (Super Admin only)
+  /// Update admin details with permissions (Super Admin only)
   Future<Map<String, dynamic>> updateAdmin({
     required int id,
     required String name,
     required String email,
     String? mobileNo,
+    List<String>? permissions,
   }) async {
+    final Map<String, dynamic> body = {
+      'name': name,
+      'email': email,
+      'mobile_no': mobileNo,
+    };
+    if (permissions != null) {
+      body['permissions'] = permissions;
+    }
     final response = await http.put(
       Uri.parse('$baseUrl/superadmin/admins/$id'),
       headers: await _getHeaders(withAuth: true),
-      body: jsonEncode({
-        'name': name,
-        'email': email,
-        'mobile_no': mobileNo,
-      }),
+      body: jsonEncode(body),
+    );
+    return jsonDecode(response.body);
+  }
+
+  /// Update admin permissions only (Super Admin only)
+  Future<Map<String, dynamic>> updateAdminPermissions({
+    required int id,
+    required List<String> permissions,
+  }) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/superadmin/admins/$id/permissions'),
+      headers: await _getHeaders(withAuth: true),
+      body: jsonEncode({'permissions': permissions}),
     );
     return jsonDecode(response.body);
   }

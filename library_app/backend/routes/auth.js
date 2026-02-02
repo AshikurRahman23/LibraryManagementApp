@@ -75,6 +75,21 @@ router.post('/login', async (req, res) => {
 
     const token = generateToken(user);
 
+    // Parse permissions for admin users
+    let permissions = [];
+    if (user.role === 'admin' && user.permissions) {
+      try {
+        permissions = typeof user.permissions === 'string' 
+          ? JSON.parse(user.permissions) 
+          : user.permissions;
+      } catch (e) {
+        permissions = [];
+      }
+    } else if (user.role === 'super_admin') {
+      // Super admin has all permissions
+      permissions = ['manage_books', 'delete_student', 'approve_requests', 'manage_loans', 'manage_suggestions'];
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -82,7 +97,8 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         name: user.name,
-        role: user.role
+        role: user.role,
+        permissions: permissions
       }
     });
 

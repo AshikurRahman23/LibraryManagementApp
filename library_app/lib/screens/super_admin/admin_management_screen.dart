@@ -11,6 +11,54 @@ typedef SuperAdminBooksScreen = super_admin_book.SuperAdminBooksScreen;
 typedef SuperAdminStudentsScreen = super_admin_student.SuperAdminStudentsScreen;
 typedef SuperAdminRequestsScreen = super_admin_request.SuperAdminRequestsScreen;
 
+/// Permission configuration for admins
+class AdminPermission {
+  final String key;
+  final String label;
+  final String description;
+  final IconData icon;
+
+  const AdminPermission({
+    required this.key,
+    required this.label,
+    required this.description,
+    required this.icon,
+  });
+}
+
+const List<AdminPermission> availablePermissions = [
+  AdminPermission(
+    key: 'manage_books',
+    label: 'Manage Books',
+    description: 'Add, edit, and delete books',
+    icon: Icons.menu_book,
+  ),
+  AdminPermission(
+    key: 'delete_student',
+    label: 'Delete Students',
+    description: 'Remove student accounts',
+    icon: Icons.person_remove,
+  ),
+  AdminPermission(
+    key: 'approve_requests',
+    label: 'Approve Requests',
+    description: 'Approve or reject borrow requests',
+    icon: Icons.check_circle,
+  ),
+  AdminPermission(
+    key: 'manage_loans',
+    label: 'Manage Loans',
+    description: 'Handle loan returns',
+    icon: Icons.assignment_return,
+  ),
+  AdminPermission(
+    key: 'manage_suggestions',
+    label: 'Manage Suggestions',
+    description: 'Delete suggested books',
+    icon: Icons.lightbulb,
+  ),
+];
+
 class SuperAdminManagementScreen extends StatefulWidget {
   const SuperAdminManagementScreen({super.key});
 
@@ -70,92 +118,187 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final mobileController = TextEditingController();
+    Set<String> selectedPermissions = {};
+    bool isProcessing = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add New Admin'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final screenWidth = MediaQuery.of(ctx).size.width;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Add New Admin'),
+            content: SizedBox(
+              width: screenWidth > 500 ? 450 : screenWidth * 0.9,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Name *',
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email *',
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(
+                        labelText: 'Password *',
+                        prefixIcon: Icon(Icons.lock),
+                      ),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: mobileController,
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile No',
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Permissions',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: availablePermissions.map((perm) {
+                          final isSelected = selectedPermissions.contains(perm.key);
+                          return CheckboxListTile(
+                            value: isSelected,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                if (val == true) {
+                                  selectedPermissions.add(perm.key);
+                                } else {
+                                  selectedPermissions.remove(perm.key);
+                                }
+                              });
+                            },
+                            title: Row(
+                              children: [
+                                Icon(perm.icon, size: 20, color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Flexible(child: Text(perm.label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal))),
+                              ],
+                            ),
+                            subtitle: Text(perm.description, style: Theme.of(ctx).textTheme.bodySmall),
+                            dense: true,
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions = availablePermissions.map((p) => p.key).toSet();
+                            });
+                          },
+                          icon: const Icon(Icons.select_all, size: 18),
+                          label: const Text('Select All'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.deselect, size: 18),
+                          label: const Text('Clear All'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email *',
-                ),
-                keyboardType: TextInputType.emailAddress,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password *',
-                ),
-                obscureText: true,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: mobileController,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile No',
-                ),
-                keyboardType: TextInputType.phone,
+              FilledButton(
+                onPressed: isProcessing ? null : () async {
+                  if (nameController.text.isEmpty ||
+                      emailController.text.isEmpty ||
+                      passwordController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please fill required fields')),
+                    );
+                    return;
+                  }
+
+                  setDialogState(() => isProcessing = true);
+
+                  try {
+                    final response = await _api.createAdmin(
+                      name: nameController.text,
+                      email: emailController.text,
+                      password: passwordController.text,
+                      mobileNo: mobileController.text.isNotEmpty
+                          ? mobileController.text
+                          : null,
+                      permissions: selectedPermissions.toList(),
+                    );
+
+                    if (!mounted) return;
+                    Navigator.pop(ctx);
+
+                    if (response['success'] == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Admin created successfully')),
+                      );
+                      await _loadAdmins();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text(response['message'] ?? 'Failed to create admin')),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    setDialogState(() => isProcessing = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                },
+                child: isProcessing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Add'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty ||
-                  emailController.text.isEmpty ||
-                  passwordController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please fill required fields')),
-                );
-                return;
-              }
-
-              Navigator.pop(ctx);
-
-              final response = await _api.createAdmin(
-                name: nameController.text,
-                email: emailController.text,
-                password: passwordController.text,
-                mobileNo: mobileController.text.isNotEmpty
-                    ? mobileController.text
-                    : null,
-              );
-
-              if (response['success'] == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Admin created successfully')),
-                );
-                _loadAdmins();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content:
-                          Text(response['message'] ?? 'Failed to create admin')),
-                );
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -164,82 +307,194 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
     final emailController = TextEditingController(text: admin['email']);
     final mobileController =
         TextEditingController(text: admin['mobile_no'] ?? '');
+    bool isProcessing = false;
+    
+    // Parse existing permissions
+    Set<String> selectedPermissions = {};
+    final existingPerms = admin['permissions'];
+    if (existingPerms != null) {
+      if (existingPerms is List) {
+        selectedPermissions = existingPerms.map((e) => e.toString()).toSet();
+      } else if (existingPerms is String) {
+        try {
+          final parsed = existingPerms.isNotEmpty ? (existingPerms.startsWith('[') ? existingPerms : '[$existingPerms]') : '[]';
+          final list = List<String>.from(
+            (parsed.replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(','))
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+          );
+          selectedPermissions = list.toSet();
+        } catch (_) {}
+      }
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Admin'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final screenWidth = MediaQuery.of(ctx).size.width;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Edit Admin'),
+            content: SizedBox(
+              width: screenWidth > 500 ? 450 : screenWidth * 0.9,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Name *',
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email *',
+                        prefixIcon: Icon(Icons.email),
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: mobileController,
+                      decoration: const InputDecoration(
+                        labelText: 'Mobile No',
+                        prefixIcon: Icon(Icons.phone),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Permissions',
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: availablePermissions.map((perm) {
+                          final isSelected = selectedPermissions.contains(perm.key);
+                          return CheckboxListTile(
+                            value: isSelected,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                if (val == true) {
+                                  selectedPermissions.add(perm.key);
+                                } else {
+                                  selectedPermissions.remove(perm.key);
+                                }
+                              });
+                            },
+                            title: Row(
+                              children: [
+                                Icon(perm.icon, size: 20, color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Flexible(child: Text(perm.label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal))),
+                              ],
+                            ),
+                            subtitle: Text(perm.description, style: Theme.of(ctx).textTheme.bodySmall),
+                            dense: true,
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions = availablePermissions.map((p) => p.key).toSet();
+                            });
+                          },
+                          icon: const Icon(Icons.select_all, size: 18),
+                          label: const Text('Select All'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.deselect, size: 18),
+                          label: const Text('Clear All'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email *',
-                ),
-                keyboardType: TextInputType.emailAddress,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: mobileController,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile No',
-                ),
-                keyboardType: TextInputType.phone,
+              FilledButton(
+                onPressed: isProcessing ? null : () async {
+                  if (nameController.text.isEmpty || emailController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Name and email are required')),
+                    );
+                    return;
+                  }
+
+                  setDialogState(() => isProcessing = true);
+
+                  try {
+                    final response = await _api.updateAdmin(
+                      id: admin['id'],
+                      name: nameController.text,
+                      email: emailController.text,
+                      mobileNo: mobileController.text.isNotEmpty
+                          ? mobileController.text
+                          : null,
+                      permissions: selectedPermissions.toList(),
+                    );
+
+                    if (!mounted) return;
+                    Navigator.pop(ctx);
+
+                    if (response['success'] == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Admin updated successfully')),
+                      );
+                      await _loadAdmins();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text(response['message'] ?? 'Failed to update admin')),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    setDialogState(() => isProcessing = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                },
+                child: isProcessing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Update'),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty || emailController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Name and email are required')),
-                );
-                return;
-              }
-
-              Navigator.pop(ctx);
-
-              final response = await _api.updateAdmin(
-                id: admin['id'],
-                name: nameController.text,
-                email: emailController.text,
-                mobileNo: mobileController.text.isNotEmpty
-                    ? mobileController.text
-                    : null,
-              );
-
-              if (response['success'] == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Admin updated successfully')),
-                );
-                _loadAdmins();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content:
-                          Text(response['message'] ?? 'Failed to update admin')),
-                );
-              }
-            },
-            child: const Text('Update'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -316,6 +571,168 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
           ),
         ],
       ),
+    );
+  }
+
+  /// Parse permissions from admin data (can be List or JSON string)
+  List<String> _parsePermissions(dynamic permissions) {
+    if (permissions == null) return [];
+    if (permissions is List) {
+      return permissions.map((e) => e.toString()).toList();
+    }
+    if (permissions is String) {
+      try {
+        if (permissions.isEmpty) return [];
+        // Handle JSON string like '["manage_books","delete_student"]'
+        final cleaned = permissions
+            .replaceAll('[', '')
+            .replaceAll(']', '')
+            .replaceAll('"', '')
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        return cleaned;
+      } catch (_) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  /// Show dialog to quickly update permissions only
+  void _showPermissionsDialog(Map<String, dynamic> admin) {
+    Set<String> selectedPermissions = _parsePermissions(admin['permissions']).toSet();
+    bool isProcessing = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        final screenWidth = MediaQuery.of(ctx).size.width;
+        
+        return StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.security, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Flexible(child: Text('Permissions for ${admin['name']}')),
+              ],
+            ),
+            content: SizedBox(
+              width: screenWidth > 500 ? 400 : screenWidth * 0.9,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: availablePermissions.map((perm) {
+                          final isSelected = selectedPermissions.contains(perm.key);
+                          return CheckboxListTile(
+                            value: isSelected,
+                            onChanged: (val) {
+                              setDialogState(() {
+                                if (val == true) {
+                                  selectedPermissions.add(perm.key);
+                                } else {
+                                  selectedPermissions.remove(perm.key);
+                                }
+                              });
+                            },
+                            title: Row(
+                              children: [
+                                Icon(perm.icon, size: 20, color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant),
+                                const SizedBox(width: 8),
+                                Flexible(child: Text(perm.label, style: TextStyle(fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal))),
+                              ],
+                            ),
+                            subtitle: Text(perm.description, style: Theme.of(ctx).textTheme.bodySmall),
+                            dense: true,
+                            controlAffinity: ListTileControlAffinity.leading,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions = availablePermissions.map((p) => p.key).toSet();
+                            });
+                          },
+                          icon: const Icon(Icons.select_all, size: 18),
+                          label: const Text('Select All'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setDialogState(() {
+                              selectedPermissions.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.deselect, size: 18),
+                          label: const Text('Clear All'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: isProcessing ? null : () async {
+                  setDialogState(() => isProcessing = true);
+
+                  try {
+                    final response = await _api.updateAdminPermissions(
+                      id: admin['id'],
+                      permissions: selectedPermissions.toList(),
+                    );
+
+                    if (!mounted) return;
+                    Navigator.pop(ctx);
+
+                    if (response['success'] == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Permissions updated successfully')),
+                      );
+                      await _loadAdmins();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text(response['message'] ?? 'Failed to update permissions')),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    setDialogState(() => isProcessing = false);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                },
+                child: isProcessing
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Save'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -542,108 +959,190 @@ class _SuperAdminManagementScreenState extends State<SuperAdminManagementScreen>
                                 padding: const EdgeInsets.symmetric(horizontal: 16),
                                 itemBuilder: (context, index) {
                                   final admin = _admins[index];
+                                  final permissions = _parsePermissions(admin['permissions']);
                                   return Card(
                                     elevation: 0,
                                     color: colorScheme.surfaceContainerLow,
                                     margin: const EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      contentPadding: const EdgeInsets.all(12),
-                                      leading: Container(
-                                        width: 48,
-                                        height: 48,
-                                        decoration: BoxDecoration(
-                                          color: colorScheme.primaryContainer,
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            (admin['name'] ?? 'A')[0].toUpperCase(),
-                                            style: textTheme.titleLarge?.copyWith(
-                                              color: colorScheme.onPrimaryContainer,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      title: Text(
-                                        admin['name'] ?? 'Unknown',
-                                        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                                      ),
-                                      subtitle: Column(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          const SizedBox(height: 4),
                                           Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Icon(Icons.email_outlined, size: 14, color: colorScheme.onSurfaceVariant),
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  admin['email'] ?? '',
-                                                  style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                              Container(
+                                                width: 48,
+                                                height: 48,
+                                                decoration: BoxDecoration(
+                                                  color: colorScheme.primaryContainer,
+                                                  borderRadius: BorderRadius.circular(12),
                                                 ),
+                                                child: Center(
+                                                  child: Text(
+                                                    (admin['name'] ?? 'A')[0].toUpperCase(),
+                                                    style: textTheme.titleLarge?.copyWith(
+                                                      color: colorScheme.onPrimaryContainer,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      admin['name'] ?? 'Unknown',
+                                                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Row(
+                                                      children: [
+                                                        Icon(Icons.email_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                                        const SizedBox(width: 4),
+                                                        Flexible(
+                                                          child: Text(
+                                                            admin['email'] ?? '',
+                                                            style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    if (admin['mobile_no'] != null) ...[
+                                                      const SizedBox(height: 4),
+                                                      Row(
+                                                        children: [
+                                                          Icon(Icons.phone_outlined, size: 14, color: colorScheme.onSurfaceVariant),
+                                                          const SizedBox(width: 4),
+                                                          Expanded(
+                                                            child: Text(
+                                                              admin['mobile_no'],
+                                                              style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                                              maxLines: 1,
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ),
+                                              PopupMenuButton<String>(
+                                                onSelected: (value) {
+                                                  switch (value) {
+                                                    case 'edit':
+                                                      _showEditAdminDialog(admin);
+                                                      break;
+                                                    case 'permissions':
+                                                      _showPermissionsDialog(admin);
+                                                      break;
+                                                    case 'password':
+                                                      _showChangePasswordDialog(admin);
+                                                      break;
+                                                    case 'delete':
+                                                      _showDeleteConfirmation(admin);
+                                                      break;
+                                                  }
+                                                },
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: ListTile(
+                                                      leading: Icon(Icons.edit_outlined, color: colorScheme.onSurface),
+                                                      title: const Text('Edit'),
+                                                      contentPadding: EdgeInsets.zero,
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'permissions',
+                                                    child: ListTile(
+                                                      leading: Icon(Icons.security, color: colorScheme.primary),
+                                                      title: const Text('Permissions'),
+                                                      contentPadding: EdgeInsets.zero,
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'password',
+                                                    child: ListTile(
+                                                      leading: Icon(Icons.lock_outline, color: colorScheme.onSurface),
+                                                      title: const Text('Change Password'),
+                                                      contentPadding: EdgeInsets.zero,
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: ListTile(
+                                                      leading: Icon(Icons.delete_outline, color: colorScheme.error),
+                                                      title: Text('Delete', style: TextStyle(color: colorScheme.error)),
+                                                      contentPadding: EdgeInsets.zero,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                          if (admin['mobile_no'] != null) ...[
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.phone_outlined, size: 14, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 4),
-                                                Expanded(
-                                                  child: Text(
-                                                    admin['mobile_no'],
-                                                    style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                                                    maxLines: 1,
-                                                    overflow: TextOverflow.ellipsis,
+                                          // Permissions display
+                                          if (permissions.isNotEmpty) ...[
+                                            const SizedBox(height: 12),
+                                            Wrap(
+                                              spacing: 6,
+                                              runSpacing: 6,
+                                              children: permissions.map((permKey) {
+                                                final perm = availablePermissions.firstWhere(
+                                                  (p) => p.key == permKey,
+                                                  orElse: () => AdminPermission(key: permKey, label: permKey, description: '', icon: Icons.check),
+                                                );
+                                                return Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.secondaryContainer,
+                                                    borderRadius: BorderRadius.circular(16),
                                                   ),
-                                                ),
-                                              ],
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(perm.icon, size: 14, color: colorScheme.onSecondaryContainer),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        perm.label,
+                                                        style: textTheme.labelSmall?.copyWith(
+                                                          color: colorScheme.onSecondaryContainer,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ] else ...[
+                                            const SizedBox(height: 12),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.errorContainer.withOpacity(0.5),
+                                                borderRadius: BorderRadius.circular(16),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.warning_amber, size: 14, color: colorScheme.error),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'No permissions assigned',
+                                                    style: textTheme.labelSmall?.copyWith(
+                                                      color: colorScheme.error,
+                                                      fontWeight: FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ],
-                                        ],
-                                      ),
-                                      isThreeLine: admin['mobile_no'] != null,
-                                      trailing: PopupMenuButton<String>(
-                                        onSelected: (value) {
-                                          switch (value) {
-                                            case 'edit':
-                                              _showEditAdminDialog(admin);
-                                              break;
-                                            case 'password':
-                                              _showChangePasswordDialog(admin);
-                                              break;
-                                            case 'delete':
-                                              _showDeleteConfirmation(admin);
-                                              break;
-                                          }
-                                        },
-                                        itemBuilder: (context) => [
-                                          PopupMenuItem(
-                                            value: 'edit',
-                                            child: ListTile(
-                                              leading: Icon(Icons.edit_outlined, color: colorScheme.onSurface),
-                                              title: const Text('Edit'),
-                                              contentPadding: EdgeInsets.zero,
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'password',
-                                            child: ListTile(
-                                              leading: Icon(Icons.lock_outline, color: colorScheme.onSurface),
-                                              title: const Text('Change Password'),
-                                              contentPadding: EdgeInsets.zero,
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: ListTile(
-                                              leading: Icon(Icons.delete_outline, color: colorScheme.error),
-                                              title: Text('Delete', style: TextStyle(color: colorScheme.error)),
-                                              contentPadding: EdgeInsets.zero,
-                                            ),
-                                          ),
                                         ],
                                       ),
                                     ),

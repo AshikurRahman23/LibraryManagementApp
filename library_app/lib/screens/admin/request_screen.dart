@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
+import '../../utils/admin_permissions.dart';
 import 'book_screen.dart';
 import 'dashboard_screen.dart';
 import 'student_screen.dart';
@@ -24,7 +25,13 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     fetchRequests();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -145,14 +152,7 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (_) => AdminPermissionService.buildMenuItems(),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -253,7 +253,7 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
                                               ),
                                             ),
                                             const SizedBox(height: 12),
-                                            if (status == 'pending')
+                                            if (status == 'pending' && AdminPermissionService.canApproveRequests)
                                               Wrap(
                                                 alignment: WrapAlignment.end,
                                                 spacing: 8,
@@ -273,6 +273,24 @@ class _AdminRequestsScreenState extends State<AdminRequestsScreen> {
                                                     label: const Text('Approve'),
                                                   ),
                                                 ],
+                                              )
+                                            else if (status == 'pending' && !AdminPermissionService.canApproveRequests)
+                                              Align(
+                                                alignment: Alignment.centerRight,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: colorScheme.tertiaryContainer,
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    'PENDING',
+                                                    style: textTheme.labelMedium?.copyWith(
+                                                      color: colorScheme.onTertiaryContainer,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
                                               )
                                             else
                                               Align(

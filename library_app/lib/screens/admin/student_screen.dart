@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
+import '../../utils/admin_permissions.dart';
 import 'dashboard_screen.dart';
 import 'book_screen.dart';
 import 'request_screen.dart';
@@ -26,8 +27,14 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     searchController.addListener(_onSearchChanged);
     fetchStudents();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -208,14 +215,7 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
             onSelected: (String value) {
               if (value.isNotEmpty) navigateTo(value);
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (_) => AdminPermissionService.buildMenuItems(),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -363,25 +363,26 @@ class _AdminStudentsScreenState extends State<AdminStudentsScreen> {
                                               ],
                                             ),
                                             const SizedBox(height: 12),
-                                            // Delete button
-                                            Align(
-                                              alignment: Alignment.centerRight,
-                                              child: FilledButton.tonalIcon(
-                                                onPressed: () => _showDeleteDialog(student),
-                                                icon: Icon(
-                                                  Icons.delete_outline,
-                                                  size: 18,
-                                                  color: colorScheme.error,
-                                                ),
-                                                label: Text(
-                                                  'Delete',
-                                                  style: TextStyle(color: colorScheme.error),
-                                                ),
-                                                style: FilledButton.styleFrom(
-                                                  backgroundColor: colorScheme.errorContainer.withOpacity(0.3),
+                                            // Delete button - only show if admin has permission
+                                            if (AdminPermissionService.canDeleteStudent)
+                                              Align(
+                                                alignment: Alignment.centerRight,
+                                                child: FilledButton.tonalIcon(
+                                                  onPressed: () => _showDeleteDialog(student),
+                                                  icon: Icon(
+                                                    Icons.delete_outline,
+                                                    size: 18,
+                                                    color: colorScheme.error,
+                                                  ),
+                                                  label: Text(
+                                                    'Delete',
+                                                    style: TextStyle(color: colorScheme.error),
+                                                  ),
+                                                  style: FilledButton.styleFrom(
+                                                    backgroundColor: colorScheme.errorContainer.withOpacity(0.3),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
                                           ],
                                         ),
                                       ),

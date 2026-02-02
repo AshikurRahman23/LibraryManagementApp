@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/theme_controller.dart';
+import '../../utils/admin_permissions.dart';
 import 'book_screen.dart';
 import 'request_screen.dart';
 import 'student_screen.dart';
@@ -27,13 +28,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   };
 
   bool loading = false;
+  bool permissionsLoaded = false;
   final ApiService api = ApiService();
 
   @override
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     fetchStats();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) {
+      setState(() => permissionsLoaded = true);
+    }
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -220,14 +230,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onSelected: (String value) {
               if (value.isNotEmpty) navigateTo(value);
             },
-            itemBuilder: (BuildContext context) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (BuildContext context) => AdminPermissionService.buildMenuItems(),
           ),
         ],
       ),

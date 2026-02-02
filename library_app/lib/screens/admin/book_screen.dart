@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/admin_permissions.dart';
 import 'dashboard_screen.dart';
 import 'student_screen.dart';
 import 'request_screen.dart';
@@ -38,8 +39,14 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     searchController.addListener(_onSearchChanged);
     fetchBooks();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -267,14 +274,7 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (_) => AdminPermissionService.buildMenuItems(),
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -295,58 +295,60 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      // Add Book Form
-                      Card(
-                        elevation: 0,
-                        color: colorScheme.surfaceContainerLow,
-                        child: ExpansionTile(
-                          title: Text(
-                            'Add New Book',
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          leading: Icon(
-                            Icons.add_circle_outline,
-                            color: colorScheme.primary,
-                          ),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  TextField(
-                                      controller: addTitleController,
-                                      decoration: const InputDecoration(labelText: 'Title')),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                      controller: addAuthorController,
-                                      decoration: const InputDecoration(labelText: 'Author')),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                      controller: addTotalController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(labelText: 'Total Copies')),
-                                  const SizedBox(height: 12),
-                                  TextField(
-                                      controller: addGenreController,
-                                      decoration: const InputDecoration(labelText: 'Genre')),
-                                  const SizedBox(height: 16),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton.icon(
-                                      onPressed: addBook,
-                                      icon: const Icon(Icons.add),
-                                      label: const Text('Add Book'),
-                                    ),
-                                  ),
-                                ],
+                      // Add Book Form - only show if has permission
+                      if (AdminPermissionService.canManageBooks)
+                        Card(
+                          elevation: 0,
+                          color: colorScheme.surfaceContainerLow,
+                          child: ExpansionTile(
+                            title: Text(
+                              'Add New Book',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
+                            leading: Icon(
+                              Icons.add_circle_outline,
+                              color: colorScheme.primary,
+                            ),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                        controller: addTitleController,
+                                        decoration: const InputDecoration(labelText: 'Title')),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                        controller: addAuthorController,
+                                        decoration: const InputDecoration(labelText: 'Author')),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                        controller: addTotalController,
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(labelText: 'Total Copies')),
+                                    const SizedBox(height: 12),
+                                    TextField(
+                                        controller: addGenreController,
+                                        decoration: const InputDecoration(labelText: 'Genre')),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: FilledButton.icon(
+                                        onPressed: addBook,
+                                        icon: const Icon(Icons.add),
+                                        label: const Text('Add Book'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
+                      if (AdminPermissionService.canManageBooks)
+                        const SizedBox(height: 16),
                       // Search Bar
                       TextField(
                         controller: searchController,
@@ -420,17 +422,19 @@ class _AdminBooksScreenState extends State<AdminBooksScreen> {
                                         ),
                                       ],
                                     ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                            icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
-                                            onPressed: () => openEditModal(book)),
-                                        IconButton(
-                                            icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                                            onPressed: () => deleteBook(book['id'])),
-                                      ],
-                                    ),
+                                    trailing: AdminPermissionService.canManageBooks
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                  icon: Icon(Icons.edit_outlined, color: colorScheme.primary),
+                                                  onPressed: () => openEditModal(book)),
+                                              IconButton(
+                                                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                                                  onPressed: () => deleteBook(book['id'])),
+                                            ],
+                                          )
+                                        : null,
                                   ),
                                 );
                               },

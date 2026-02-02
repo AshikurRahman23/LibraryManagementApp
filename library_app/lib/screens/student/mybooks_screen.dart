@@ -130,6 +130,8 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
     final TextEditingController pinController = TextEditingController();
     final TextEditingController amountController = TextEditingController(text: penalty.toString());
     bool isProcessing = false;
+    String? errorMessage;
+    bool isShaking = false;
 
     showDialog(
       context: context,
@@ -141,7 +143,53 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
         final textTheme = Theme.of(ctx).textTheme;
         
         return StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) {
+          // Function to show error with shake animation
+          void showError(String message) {
+            setDialogState(() {
+              errorMessage = message;
+              isShaking = true;
+            });
+            // Stop shaking after animation completes
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (context.mounted) {
+                setDialogState(() => isShaking = false);
+              }
+            });
+          }
+          
+          // Function to clear error
+          void clearError() {
+            if (errorMessage != null) {
+              setDialogState(() => errorMessage = null);
+            }
+          }
+          
+          return TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: isShaking ? 1 : 0),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.elasticIn,
+            builder: (context, value, child) {
+              // Calculate shake offset using sine wave for vibrating effect
+              final shakeOffset = isShaking 
+                  ? 10 * (1 - value) * (value < 0.5 
+                      ? (value * 20).floor().isEven ? 1 : -1 
+                      : ((1 - value) * 20).floor().isEven ? 1 : -1)
+                  : 0.0;
+              
+              return Transform.translate(
+                offset: Offset(shakeOffset, 0),
+                child: child,
+              );
+            },
+            child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: errorMessage != null ? Colors.red : Colors.transparent,
+              width: errorMessage != null ? 2.5 : 0,
+            ),
+          ),
           contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           titlePadding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           actionsPadding: const EdgeInsets.all(8),
@@ -388,6 +436,31 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                     ],
                   ),
                 ),
+                
+                // Error message display
+                if (errorMessage != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade300, width: 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            style: TextStyle(fontSize: 12, color: Colors.red.shade700, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -401,24 +474,15 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
               onPressed: isProcessing
                   ? null
                   : () async {
+                      clearError();
                       // Validate amount
                       final payAmount = int.tryParse(amountController.text) ?? 0;
                       if (payAmount < 10) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Minimum payment amount is ৳10'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        showError('Minimum payment amount is ৳10');
                         return;
                       }
                       if (payAmount > penalty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Amount cannot exceed penalty (৳$penalty)'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        showError('Amount cannot exceed penalty (৳$penalty)');
                         return;
                       }
                       
@@ -435,12 +499,7 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                       }
                       
                       if (!isValid) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Please fill all ${selectedMethod == 'card' ? 'card' : selectedMethod} details correctly'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
+                        showError('Please fill all ${selectedMethod == 'card' ? 'card' : selectedMethod} details correctly');
                         return;
                       }
 
@@ -456,24 +515,19 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
                         );
                         
                         if (!mounted) return;
-                        Navigator.pop(ctx);
 
                         if (result['success'] == true) {
+                          Navigator.pop(ctx);
                           // Show success dialog
                           _showPaymentSuccessDialog(loan, payAmount, penalty, selectedMethod, result['transaction_id'] ?? 'TXN${DateTime.now().millisecondsSinceEpoch}');
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(result['message'] ?? 'Payment failed'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          setDialogState(() => isProcessing = false);
+                          showError(result['message'] ?? 'Payment failed');
                         }
                       } catch (e) {
                         if (!mounted) return;
-                        Navigator.pop(ctx);
-                        // Demo mode - show success anyway
-                        _showPaymentSuccessDialog(loan, payAmount, penalty, selectedMethod, 'TXN${DateTime.now().millisecondsSinceEpoch}');
+                        setDialogState(() => isProcessing = false);
+                        showError('Payment failed: ${e.toString()}');
                       }
                     },
               child: isProcessing
@@ -486,9 +540,9 @@ class _StudentMyBooksScreenState extends State<StudentMyBooksScreen> {
             ),
           ],
         ),
-      );
-      },
-    );
+        );
+      });
+    });
   }
 
   // Helper method for payment method buttons

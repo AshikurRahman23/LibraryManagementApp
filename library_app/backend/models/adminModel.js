@@ -1,11 +1,22 @@
 import pool from './db.js';
 
 /**
+ * Available admin permissions
+ */
+export const ADMIN_PERMISSIONS = {
+  MANAGE_BOOKS: 'manage_books',           // Add, edit, delete books
+  DELETE_STUDENT: 'delete_student',        // Delete students
+  APPROVE_REQUESTS: 'approve_requests',    // Approve/reject book requests
+  MANAGE_LOANS: 'manage_loans',            // Manage loan returns
+  MANAGE_SUGGESTIONS: 'manage_suggestions' // Delete suggested books
+};
+
+/**
  * Get all admin users (excluding super_admin)
  */
 export const getAllAdmins = async () => {
     const res = await pool.query(
-        'SELECT id, name, email, role, mobile_no, created_at FROM users WHERE role=$1 ORDER BY created_at DESC',
+        'SELECT id, name, email, role, mobile_no, permissions, created_at FROM users WHERE role=$1 ORDER BY created_at DESC',
         ['admin']
     );
     return res.rows;
@@ -16,7 +27,7 @@ export const getAllAdmins = async () => {
  */
 export const getAdminById = async (id) => {
     const res = await pool.query(
-        'SELECT id, name, email, role, mobile_no, created_at FROM users WHERE id=$1 AND role=$2',
+        'SELECT id, name, email, role, mobile_no, permissions, created_at FROM users WHERE id=$1 AND role=$2',
         [id, 'admin']
     );
     return res.rows[0];
@@ -28,7 +39,7 @@ export const getAdminById = async (id) => {
 export const searchAdmins = async (searchTerm) => {
     const search = `%${searchTerm}%`;
     const res = await pool.query(
-        `SELECT id, name, email, role, mobile_no, created_at 
+        `SELECT id, name, email, role, mobile_no, permissions, created_at 
          FROM users 
          WHERE role=$1 AND (name ILIKE $2 OR email ILIKE $2)
          ORDER BY created_at DESC`,
@@ -38,27 +49,53 @@ export const searchAdmins = async (searchTerm) => {
 };
 
 /**
- * Create new admin user
+ * Create new admin user with permissions
  */
-export const createAdmin = async (name, email, hashedPassword, mobile_no) => {
+export const createAdmin = async (name, email, hashedPassword, mobile_no, permissions = []) => {
     const res = await pool.query(
-        `INSERT INTO users (name, email, password, role, mobile_no) 
-         VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, role, mobile_no, created_at`,
-        [name, email, hashedPassword, 'admin', mobile_no]
+        `INSERT INTO users (name, email, password, role, mobile_no, permissions) 
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role, mobile_no, permissions, created_at`,
+        [name, email, hashedPassword, 'admin', mobile_no, JSON.stringify(permissions)]
     );
     return res.rows[0];
 };
 
 /**
- * Update admin details (excluding password)
+ * Update admin details (excluding password) with permissions
  */
-export const updateAdmin = async (id, name, email, mobile_no) => {
+export const updateAdmin = async (id, name, email, mobile_no, permissions = null) => {
+    // If permissions provided, update them too
+    if (permissions !== null) {
+        const res = await pool.query(
+            `UPDATE users 
+             SET name=$1, email=$2, mobile_no=$3, permissions=$4
+             WHERE id=$5 AND role=$6 
+             RETURNING id, name, email, role, mobile_no, permissions, created_at`,
+            [name, email, mobile_no, JSON.stringify(permissions), id, 'admin']
+        );
+        return res.rows[0];
+    }
+    
     const res = await pool.query(
         `UPDATE users 
          SET name=$1, email=$2, mobile_no=$3 
          WHERE id=$4 AND role=$5 
-         RETURNING id, name, email, role, mobile_no, created_at`,
+         RETURNING id, name, email, role, mobile_no, permissions, created_at`,
         [name, email, mobile_no, id, 'admin']
+    );
+    return res.rows[0];
+};
+
+/**
+ * Update admin permissions only
+ */
+export const updateAdminPermissions = async (id, permissions) => {
+    const res = await pool.query(
+        `UPDATE users 
+         SET permissions=$1 
+         WHERE id=$2 AND role=$3 
+         RETURNING id, name, email, role, mobile_no, permissions, created_at`,
+        [JSON.stringify(permissions), id, 'admin']
     );
     return res.rows[0];
 };

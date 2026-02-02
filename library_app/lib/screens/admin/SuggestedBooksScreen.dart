@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
+import '../../utils/admin_permissions.dart';
 import 'dashboard_screen.dart';
 import 'book_screen.dart';
 import 'request_screen.dart';
@@ -29,7 +30,13 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
   void initState() {
     super.initState();
     _saveCurrentRoute();
+    _loadPermissions();
     _fetchSuggested();
+  }
+
+  Future<void> _loadPermissions() async {
+    await AdminPermissionService.loadPermissions();
+    if (mounted) setState(() {});
   }
 
   Future<void> _saveCurrentRoute() async {
@@ -213,14 +220,7 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.menu),
             onSelected: navigateTo,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: '/admin/books', child: Text('Books')),
-              PopupMenuItem(value: '/admin/students', child: Text('Students')),
-              PopupMenuItem(value: '/admin/loans', child: Text('Loans')),
-              PopupMenuItem(value: '/admin/requests', child: Text('Requests')),
-              PopupMenuItem(value: '/admin/suggested-books', child: Text('Suggested')),
-              PopupMenuItem(value: '/admin/payments', child: Text('Payments')),
-            ],
+            itemBuilder: (_) => AdminPermissionService.buildMenuItems(),
           ),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchSuggested, tooltip: 'Refresh'),
         ],
@@ -325,11 +325,13 @@ class _SuggestedBooksScreenState extends State<SuggestedBooksScreen> {
                                               ),
                                             ),
                                           ),
-                                          trailing: IconButton(
-                                            icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                                            tooltip: 'Delete suggestion',
-                                            onPressed: () => _confirmDelete(s['id'] as int, title),
-                                          ),
+                                          trailing: AdminPermissionService.canManageSuggestions
+                                              ? IconButton(
+                                                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                                                  tooltip: 'Delete suggestion',
+                                                  onPressed: () => _confirmDelete(s['id'] as int, title),
+                                                )
+                                              : null,
                                         ),
                                       );
                                     },

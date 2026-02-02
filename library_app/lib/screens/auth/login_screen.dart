@@ -5,6 +5,7 @@ import '../admin/dashboard_screen.dart';
 import '../student/dashboard_screen.dart';
 import '../super_admin/dashboard_screen.dart' as super_admin;
 import '../../utils/js_safe.dart';
+import '../../utils/admin_permissions.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -38,6 +39,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response['success'] == true) {
         final role = response['user']['role'];
+        
+        // Save permissions for admin/super_admin
+        if (role == 'admin' || role == 'super_admin') {
+          final permissions = response['user']['permissions'] ?? [];
+          await AdminPermissionService.savePermissions(List.from(permissions));
+        }
+        
         if (role == 'super_admin') {
           Navigator.pushReplacement(
             context,
