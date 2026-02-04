@@ -369,13 +369,24 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                                               ],
                                             ],
                                             if (isIssued && AdminPermissionService.canManageLoans)
-                                              FilledButton(
-                                                onPressed: () => markReturned(
-                                                  loan['id'],
-                                                  loan['book_id'],
-                                                ),
-                                                child: const Text('Mark Returned'),
-                                              )
+                                              remainingPenalty > 0
+                                                  ? OutlinedButton(
+                                                      onPressed: () {
+                                                        ScaffoldMessenger.of(context).showSnackBar(
+                                                          SnackBar(
+                                                            content: Text('Payment of ৳$remainingPenalty required before return'),
+                                                          ),
+                                                        );
+                                                      },
+                                                      child: const Text('Mark Returned'),
+                                                    )
+                                                  : FilledButton(
+                                                      onPressed: () => markReturned(
+                                                        loan['id'],
+                                                        loan['book_id'],
+                                                      ),
+                                                      child: const Text('Mark Returned'),
+                                                    )
                                             else if (isIssued && !AdminPermissionService.canManageLoans)
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

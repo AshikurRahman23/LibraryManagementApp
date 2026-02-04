@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
 
   bool loading = false;
+  bool _obscurePassword = true;
   final ApiService api = ApiService();
 
   void login() async {
@@ -160,11 +161,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Password
                       TextFormField(
                         controller: passwordController,
-                        obscureText: true,
+                        obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock_outline),
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                         ),
                         validator: (value) =>
                             value!.isEmpty ? 'Please enter password' : null,

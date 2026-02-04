@@ -142,6 +142,14 @@ class _SuperAdminLoansScreenState extends State<SuperAdminLoansScreen> {
       case '/superadmin/suggested-books':
         Navigator.pushReplacementNamed(context, '/superadmin/suggested-books');
         break;
+      
+      case '/superadmin/admins':
+        Navigator.pushReplacementNamed(context, '/superadmin/admins');
+        break;
+
+      case '/superadmin/payments':
+        Navigator.pushReplacementNamed(context, '/superadmin/payments');
+        break;
 
       case '/auth/logout':
         Navigator.pushReplacement(
@@ -371,14 +379,25 @@ class _SuperAdminLoansScreenState extends State<SuperAdminLoansScreen> {
                                       ],
                                     ),
                                     trailing: isIssued
-                                        ? FilledButton(
-                                            onPressed: () =>
-                                                markReturned(
-                                              loan['id'],
-                                              loan['book_id'],
-                                            ),
-                                            child: const Text('Mark Returned'),
-                                          )
+                                        ? remainingPenalty > 0
+                                            ? OutlinedButton(
+                                                onPressed: () {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Payment of ৳$remainingPenalty required before return'),
+                                                    ),
+                                                  );
+                                                },
+                                                child: const Text('Mark Returned'),
+                                              )
+                                            : FilledButton(
+                                                onPressed: () =>
+                                                    markReturned(
+                                                  loan['id'],
+                                                  loan['book_id'],
+                                                ),
+                                                child: const Text('Mark Returned'),
+                                              )
                                         : Icon(
                                             Icons.check_circle,
                                             color: colorScheme.primary,

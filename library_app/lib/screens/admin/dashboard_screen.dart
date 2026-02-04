@@ -152,6 +152,77 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Widget _buildPermissionsCard(ColorScheme colorScheme, TextTheme textTheme) {
+    final permissions = AdminPermissionService.permissions;
+    
+    // Map permission keys to display labels and icons
+    final permissionDisplay = {
+      AdminPermissionKeys.manageBooks: ('Manage Books', Icons.menu_book_outlined),
+      AdminPermissionKeys.deleteStudent: ('Delete Students', Icons.person_remove_outlined),
+      AdminPermissionKeys.approveRequests: ('Approve Requests', Icons.check_circle_outline),
+      AdminPermissionKeys.manageLoans: ('Manage Loans', Icons.swap_horiz_outlined),
+      AdminPermissionKeys.manageSuggestions: ('Manage Suggestions', Icons.lightbulb_outline),
+    };
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: permissions.isEmpty
+            ? Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'No specific permissions assigned',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              )
+            : Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: permissions.map((perm) {
+                  final display = permissionDisplay[perm];
+                  final label = display?.$1 ?? perm;
+                  final icon = display?.$2 ?? Icons.check;
+                  
+                  return Chip(
+                    avatar: Icon(
+                      icon,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
+                    label: Text(label),
+                    backgroundColor: colorScheme.primaryContainer.withOpacity(0.3),
+                    labelStyle: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    side: BorderSide(
+                      color: colorScheme.primary.withOpacity(0.3),
+                    ),
+                  );
+                }).toList(),
+              ),
+      ),
+    );
+  }
+
   void navigateTo(String route) async {
     const storage = FlutterSecureStorage();
     await storage.write(key: 'last_route', value: route);
@@ -199,7 +270,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
@@ -296,6 +366,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           );
                         },
                       ),
+                      const SizedBox(height: 32),
+                      // Permissions Section
+                      Text(
+                        'Your Permissions',
+                        style: textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildPermissionsCard(colorScheme, textTheme),
                       const SizedBox(height: 32),
                       Center(
                         child: Column(

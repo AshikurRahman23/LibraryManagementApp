@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../api/api_service.dart';
-import '../../theme/app_theme.dart';
 import '../../utils/js_safe.dart';
+import '../../theme/app_theme.dart';
 import '../../utils/admin_permissions.dart';
 import '../auth/login_screen.dart';
 
@@ -107,6 +107,9 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
       case '/admin/payments':
         Navigator.pushReplacementNamed(context, '/admin/payments');
         break;
+      case '/admin/suggested-books':
+        Navigator.pushReplacementNamed(context, '/admin/suggested-books');
+        break;
       case '/auth/logout':
         Navigator.pushReplacement(
           context,
@@ -146,6 +149,7 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final maxWidth = Breakpoints.getMaxContentWidth(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -177,9 +181,7 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: Breakpoints.getMaxContentWidth(context),
-          ),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -188,10 +190,7 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
                   controller: searchController,
                   decoration: InputDecoration(
                     hintText: 'Search by roll/student ID, name, book, or method',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                    prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
                     filled: true,
                     fillColor: colorScheme.surfaceContainerHighest,
                     border: OutlineInputBorder(
@@ -203,29 +202,24 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: loading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            color: colorScheme.primary,
-                          ),
-                        )
+                      ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
                       : filteredPayments.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.receipt_long_outlined,
-                                    size: 64,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No payment records found.',
-                                    style: textTheme.bodyLarge?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
+                          ? Card(
+                              elevation: 0,
+                              color: colorScheme.surfaceContainerLow,
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.receipt_long_outlined, size: 64, color: colorScheme.onSurfaceVariant),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No payment records found.',
+                                      style: textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -239,95 +233,111 @@ class _AdminPaymentHistoryScreenState extends State<AdminPaymentHistoryScreen> {
                                   elevation: 0,
                                   color: colorScheme.surfaceContainerLow,
                                   margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.all(16),
+                                    leading: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: _getPaymentColor(method).withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        _getPaymentIcon(method),
+                                        color: _getPaymentColor(method),
+                                      ),
+                                    ),
+                                    title: Text(
+                                      safeString(payment['book_title']),
+                                      style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                    subtitle: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: _getPaymentColor(method).withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Icon(
-                                            _getPaymentIcon(method),
-                                            color: _getPaymentColor(method),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                safeString(payment['book_title']),
-                                                style: textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: colorScheme.onSurface,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.badge_outlined, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
                                                 'Roll: $roll',
-                                                style: textTheme.bodyMedium?.copyWith(
-                                                  fontWeight: FontWeight.w500,
-                                                  color: colorScheme.onSurface,
-                                                ),
+                                                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                              Text(
-                                                'Name: ${safeString(payment['student_name'])}',
-                                                style: textTheme.bodyMedium?.copyWith(
-                                                  color: colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Wrap(
-                                                spacing: 8,
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                    decoration: BoxDecoration(
-                                                      color: colorScheme.secondaryContainer,
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                    child: Text(
-                                                      method.toUpperCase(),
-                                                      style: textTheme.labelSmall?.copyWith(
-                                                        color: colorScheme.onSecondaryContainer,
-                                                        fontWeight: FontWeight.w600,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    paidAt != null
-                                                        ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}"
-                                                        : 'N/A',
-                                                    style: textTheme.bodySmall?.copyWith(
-                                                      color: colorScheme.onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Transaction: ${safeString(payment['transaction_id'])}',
-                                                style: textTheme.bodySmall?.copyWith(
-                                                  color: colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 8),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(Icons.person_outline, size: 16, color: colorScheme.onSurfaceVariant),
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                safeString(payment['student_name']),
+                                                style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.secondaryContainer,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                method.toUpperCase(),
+                                                style: textTheme.labelMedium?.copyWith(
+                                                  color: colorScheme.onSecondaryContainer,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.tertiaryContainer,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                paidAt != null
+                                                    ? "${paidAt.day.toString().padLeft(2, '0')}/${paidAt.month.toString().padLeft(2, '0')}/${paidAt.year}"
+                                                    : 'N/A',
+                                                style: textTheme.labelMedium?.copyWith(
+                                                  color: colorScheme.onTertiaryContainer,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          '৳${payment['amount'] ?? 0}',
-                                          style: textTheme.titleLarge?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green.shade600,
-                                          ),
+                                          'Transaction: ${safeString(payment['transaction_id'])}',
+                                          style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                                         ),
                                       ],
+                                    ),
+                                    trailing: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '৳${payment['amount'] ?? 0}',
+                                        style: textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: colorScheme.onPrimaryContainer,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 );
