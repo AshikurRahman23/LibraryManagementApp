@@ -169,7 +169,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Loan Management'),
+        title: const Text('Manage Loans'),
         centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
